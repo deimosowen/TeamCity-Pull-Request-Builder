@@ -1,0 +1,40 @@
+{
+    "manifest_version": 3,
+    "name": "TeamCity Pull Request Builder",
+    "version": "1.0",
+    "description": "With a plugin, you can automatically trigger builds of your project that are associated with a specific pull-request.",
+    "host_permissions": [
+        "*://*.ci.parcsis.org/"
+    ],
+    "permissions": [
+        "storage",
+        "activeTab",
+        "tabs",
+        "cookies"
+    ],
+    "action": {
+        "default_popup": "popup.html",
+        "default_icon": {
+            "16": "assets/icons/icon16.png",
+            "128": "assets/icons/icon128.png"
+        }
+    },
+    "icons": {
+        "16": "assets/icons/icon16.png",
+        "128": "assets/icons/icon128.png"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "*://*.github.com/*"
+            ],
+            "js": [
+                "contentScript.js"
+            ],
+            "run_at": "document_end"
+        }
+    ],
+    "background": {
+        "service_worker": "background.js"
+    }
+}
