@@ -51,29 +51,44 @@ function createLabelsElement(labelsData) {
     labelsElement.classList.add("sidebar-assignee");
     labelsElement.addEventListener('click', handleBuildButtonClick);
 
-    labelsData.forEach((data) => {
+    for (const data of labelsData) {
         chrome.runtime.sendMessage({
             command: 'getBuild',
             isLinux: data.isLinux,
             pull: pull
         }, function (response) {
-            const buildResult = checkStatus(response.response);
+            if (response.response.isAuthorized === false) {
+                const isNeedAuthorized = document.getElementById('isNeedAuthorized');
+                if (isNeedAuthorized === null) {
+                    const label = document.createElement("p");
+                    label.innerHTML = `
+                <span class="d-flex min-width-0 flex-1 js-hovercard-left" id="isNeedAuthorized">
+                  <a class="Link--primary assignee text-center" href="https://ci.parcsis.org/login.html" target="_blank"style="width: 100%;">
+                  <div>You are not authorized</div>
+                    <div class="Link--primary v-align-middle">Log in to TeamCity</div>
+                  </a>
+                </span>`;
+                    labelsElement.appendChild(label);
+                }
+                return;
+            }
+            const buildResult = checkStatus(response.response.data);
             let details = "";
 
             if (buildResult === ResultStatus.SUCCESS) {
                 details = createBuildDetailsElement(
-                    `Last build: ${formatDate(response.response.build[0].finishOnAgentDate)}`,
+                    `Last build: ${formatDate(response.response.data.build[0].finishOnAgentDate)}`,
                     createSvgElement("M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z", "octicon-check color-fg-success")
                 );
             } else if (buildResult === ResultStatus.FAILURE) {
                 details = createBuildDetailsElement(
-                    `Last build: ${formatDate(response.response.build[0].finishOnAgentDate)}`,
-                    createSvgElement("M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.749.749 0 0 1 1.275.326.749.749 0 0 1-.215.734L9.06 8l3.22 3.22a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L8 9.06l-3.22 3.22a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z", "octicon-x")
+                    `Last build: ${formatDate(response.response.data.build[0].finishOnAgentDate)}`,
+                    createSvgElement("M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.749.749 0 0 1 1.275.326.749.749 0 0 1-.215.734L9.06 8l3.22 3.22a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L8 9.06l-3.22 3.22a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z", "octicon-x color-fg-danger")
                 );
             } else if (buildResult === ResultStatus.RUNNING) {
                 details = createBuildDetailsElement(
                     "Build in progress",
-                    createSvgElement("M8 4a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z", "octicon-x")
+                    createSvgElement("M8 4a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z", "octicon-x hx_dot-fill-pending-icon")
                 );
             }
 
@@ -88,14 +103,14 @@ function createLabelsElement(labelsData) {
               </button>
             </span>
             <span class="d-flex min-width-0 flex-1 js-hovercard-left">
-              <a class="Link--primary assignee" href="${response.response.count === 0 ? data.href : response.response.build[0].webUrl} target="_blank">
+              <a class="Link--primary assignee" href="${response.response.data.count === 0 ? data.href : response.response.data.build[0].webUrl}" target="_blank">
                 <div class="Link--primary v-align-middle">${data.text}</div>
                 ${details}
               </a>
             </span>`;
             labelsElement.appendChild(label);
         });
-    });
+    };
 
     return labelsElement;
 }
@@ -118,20 +133,19 @@ function createBuildDetailsElement(text, svgElement) {
 function addBuildInTeamCityMenu() {
     const projectsMenu = document.getElementById('projects-select-menu');
     const parent = projectsMenu.closest('.discussion-sidebar-item.js-discussion-sidebar-item');
-
-    const sidebarItem = createSidebarItem();
-    const detailsElement = createDetailsElement();
-    const summaryElement = createSummaryElement();
     const labelsData = [
         { text: 'CasePro pull requests', isLinux: false, href: 'https://ci.parcsis.org/buildConfiguration/CasePro_Pulls_CaseProBuildPullSite?mode=builds#all-projects' },
         { text: 'CasePro pull requests (Linux)', isLinux: true, href: 'https://ci.parcsis.org/buildConfiguration/CasePro_Linux_BuildDockerImagesPulls?mode=builds#all-projects' },
     ];
+
+    const sidebarItem = createSidebarItem();
+    const detailsElement = createDetailsElement();
+    const summaryElement = createSummaryElement();
     const labelsElement = createLabelsElement(labelsData);
 
     detailsElement.appendChild(summaryElement);
     sidebarItem.appendChild(detailsElement);
     sidebarItem.appendChild(labelsElement);
-
     parent.parentNode.insertBefore(sidebarItem, parent);
 }
 
