@@ -28,8 +28,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 async function handleGetBuild(request) {
     try {
-        const data = await getBuilds(request.isLinux, request.pull);
-        return data;
+        const result = await getBuilds(request.isLinux, request.pull);
+        return result;
     } catch (error) {
         console.error("Failed to get builds:", error);
         return null;
@@ -39,8 +39,8 @@ async function handleGetBuild(request) {
 async function handleRunBuild(request) {
     try {
         const CSRFToken = await getAuthenticationTestResult();
-        const data = await runBuildQueue(request.isLinux, request.pull, CSRFToken);
-        return data;
+        const result = await runBuildQueue(request.isLinux, request.pull, CSRFToken);
+        return result;
     } catch (error) {
         console.error("Failed to run build:", error);
         return null;
@@ -51,7 +51,6 @@ async function getBuilds(isLinux, branch) {
     const buildType = isLinux ? CASEPRO_LINUX_BUILDS : CASEPRO_PULLS_BUILDS;
     const cookie = await getCookie();
     const url = `${TEAMCITY_URL}app/rest/builds?locator=buildType:${buildType},branch:${branch},count:1,running:any`;
-
     const response = await fetch(url, {
         headers: {
             "Cookie": `${cookie.name}=${cookie.value}`,
@@ -62,7 +61,18 @@ async function getBuilds(isLinux, branch) {
     if (!response.ok) {
         throw new Error(response.statusText);
     }
-    return response.json();
+    let data = null;
+    const contentType = response.headers.get("content-type");
+    if (contentType && contentType.indexOf("application/json") !== -1) {
+        data = await response.json();
+    } else {
+        data = await response.text();
+    }
+
+    return {
+        isAuthorized: !response.redirected,
+        data: !response.redirected ? data : null
+    };
 }
 
 async function runBuildQueue(isLinux, branch, CSRFToken) {
@@ -90,7 +100,10 @@ async function runBuildQueue(isLinux, branch, CSRFToken) {
     if (!response.ok) {
         throw new Error(response.statusText);
     }
-    return response.json();
+    return {
+        isAuthorized: !response.redirected,
+        data: !response.redirected ? response.json() : null
+    };
 }
 
 async function getCookie() {
