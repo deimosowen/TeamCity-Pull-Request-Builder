@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Options</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" />
+    <link rel="stylesheet" href="bulma.min.css" />
+</head>
+
+<body class="layout-documentation page-helpers">
+    <div class="bd-docs bd-is-contained">
+        <main class="bd-docs-main">
+            <div class="container">
+                <section class="hero">
+                    <div class="hero-body">
+                        <p class="title">TeamCity Pull Request Builder</p>
+                        <p class="subtitle">Options</p>
+                        <div class="columns">
+                            <div class="column is-three-fifths">
+                                <textarea class="textarea" placeholder="Json options" rows="10"
+                                    id="optionsJson"></textarea>
+                            </div>
+                        </div>
+                        <div class="columns">
+                            <div class="column is-three-fifths">
+                                <button class="button is-success">Save</button>
+                                <button class="button is-info" id="prettifyJson">Prettify Json</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+    <script src="options.js"></script>
+</body>
+
+</html>
