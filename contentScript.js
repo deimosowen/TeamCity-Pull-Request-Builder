@@ -24,8 +24,14 @@ function isCleanUrl() {
 }
 
 function createSidebarItem() {
-    const sidebarItem = document.createElement("div");
-    sidebarItem.classList.add("discussion-sidebar-item", "js-discussion-sidebar-item");
+    let sidebarItem = document.getElementById("root-build-tc-menu");
+    if (sidebarItem) {
+        sidebarItem.innerHTML = "";
+    } else {
+        sidebarItem = document.createElement("div");
+        sidebarItem.setAttribute("id", "root-build-tc-menu");
+        sidebarItem.classList.add("discussion-sidebar-item", "js-discussion-sidebar-item");
+    }
     return sidebarItem;
 }
 
@@ -42,6 +48,22 @@ function createSummaryElement() {
     summaryElement.setAttribute("aria-haspopup", "menu");
     summaryElement.textContent = "Build in TeamCity";
     return summaryElement;
+}
+
+function createLoaderElement() {
+    const loaderElement = document.createElement("div");
+    loaderElement.setAttribute("id", "tc-loader");
+    loaderElement.classList.add("text-center");
+    const loaderHTML = `
+    <div class="text-center">
+      <svg style="box-sizing: content-box; color: var(--color-icon-primary);" width="32" height="32" viewBox="0 0 16 16" fill="none" data-view-component="true" class="m-3 anim-rotate">
+        <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-opacity="0.25" stroke-width="2" vector-effect="non-scaling-stroke"></circle>
+        <path d="M15 8a7.002 7.002 0 00-7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" vector-effect="non-scaling-stroke"></path>
+      </svg>
+    </div>
+  `;
+    loaderElement.innerHTML = loaderHTML;
+    return loaderElement;
 }
 
 function createLabelsElement(labelsData) {
