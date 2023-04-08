@@ -8,7 +8,8 @@
     ],
     "permissions": [
         "tabs",
-        "cookies"
+        "cookies",
+        "storage"
     ],
     "action": {
         "default_popup": "popup.html",
@@ -34,6 +35,7 @@
     ],
     "options_page": "options.html",
     "background": {
-        "service_worker": "background.js"
+        "service_worker": "background.js",
+        "type": "module"
     }
 }
