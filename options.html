@@ -19,7 +19,7 @@
                         <p class="subtitle">Options</p>
                         <div class="columns">
                             <div class="column is-three-fifths">
-                                <textarea class="textarea" placeholder="Json options" rows="10"
+                                <textarea class="textarea" placeholder="Json options" rows="16"
                                     id="optionsJson"></textarea>
                             </div>
                         </div>
@@ -28,12 +28,53 @@
                             <div class="column is-three-fifths">
                                 <button class="button is-success" id="saveJson">Save</button>
                                 <button class="button is-info" id="prettifyJson">Prettify Json</button>
+                                <button class="button" id="setDefault">Set Default</button>
+                                <button class="button js-modal-trigger" data-target="modal-help">
+                                    Help
+                                </button>
                             </div>
                         </div>
                     </div>
                 </section>
             </div>
         </main>
+    </div>
+    <div id="modal-help" class="modal">
+        <div class="modal-background"></div>
+        <div class="modal-content">
+            <div class="content box is-size-6">
+                <h1>Description</h1>
+                <p>
+                <h4 class="m-0">1. BaseUrl (Обязательный параметр):</h4>
+                Адрес сервера TeamCity. Замените значение <strong>"https://ci.parcsis.org/"</strong> на адрес вашего
+                сервера
+                TeamCity.</p>
+
+                <p>
+                <h4 class="m-0">2. Repository (Обязательный параметр):</h4>
+                Словарь, содержащий информацию о репозиториях, на которых будет доступна вкладка <strong>"Build in
+                    TeamCity"</strong>.
+                Каждый ключ в этом словаре представляет собой название репозитория. В приведенном примере ключ -
+                <strong>"CasePro"</strong>.</p>
+
+                <p>
+                <h4 class="m-0">2.1 CasePro:</h4>
+                Массив, содержащий объекты с информацией о конфигурациях сборки TeamCity для репозитория
+                <strong>"CasePro"</strong>.
+                Замените <strong>"CasePro"</strong> на название вашего репозитория и добавьте соответствующие объекты с
+                информацией о
+                конфигурациях сборки.</p>
+
+                <p>
+                <h4 class="m-0">2.1.1 BuildType (Обязательный параметр):</h4>
+                Наименование конфигурации в TeamCity.</p>
+
+                <p>
+                <h4 class="m-0">2.1.2 Name (Обязательный параметр):</h4>
+                Отображаемое имя для конфигурации сборки.</p>
+            </div>
+        </div>
+        <button class="modal-close is-large" aria-label="close"></button>
     </div>
     <script src="options.js"></script>
 </body>
