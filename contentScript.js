@@ -1,15 +1,91 @@
-const ResultStatus = {
-    SUCCESS: "SUCCESS",
-    RUNNING: "RUNNING",
-    FAILURE: "FAILURE",
-    INVALID_INPUT: "INVALID INPUT",
+const options = {
+    config: {},
+    init: async () => {
+        await options.loadConfig();
+    },
+    getConfig: async () => {
+        const { config } = await chrome.storage.local.get(["config"]);
+        return config;
+    },
+    loadConfig: async () => {
+        try {
+            let config = await options.getConfig();
+            if (!config) {
+                config = await options.setDefaultConfig();
+            }
+            options.config = config;
+        }
+        catch (err) {
+            console.error(err);
+        }
+    },
+    setDefaultConfig: async () => {
+        const defaultConfig = {
+            "BaseUrl": "https://ci.parcsis.org/",
+            "Repository": {
+                "CasePro": [
+                    {
+                        "BuildType": "CasePro_Pulls_CaseProBuildPullSite",
+                        "Name": "CasePro pull requests"
+                    },
+                    {
+                        "BuildType": "CasePro_Linux_BuildDockerImagesPulls",
+                        "Name": "CasePro pull requests (Linux)"
+                    }
+                ]
+            }
+        };
+        await chrome.storage.local.set({ config: defaultConfig });
+        return defaultConfig;
+    }
 };
 
-function init() {
-    if (isCleanUrl()) {
-        addBuildInTeamCityMenu();
+const cs = {
+    resultStatus: {
+        SUCCESS: "SUCCESS",
+        RUNNING: "RUNNING",
+        FAILURE: "FAILURE"
+    },
+    init: async () => {
+        await options.init();
+
+        window.addEventListener('load', async () => {
+            await cs.render();
+        });
+
+        chrome.runtime.onMessage.addListener(({ type }) => {
+            if (type === 'OPEN_PULL') {
+                console.log('OPEN_PULL');
+                setTimeout(async () => await cs.render(), 1000);
+            }
+        });
+    },
+    render: async () => {
+        if (isCleanUrl()) {
+            addBuildInTeamCityMenu();
+        }
+    },
+    getRepoBuildSetting: () => {
+        function getRepoName() {
+            const regex = /https:\/\/github\.com\/[^/]+\/([^/]+)/;
+            const match = window.location.href.match(regex);
+            if (match && match[1]) {
+                return match[1];
+            }
+        };
+        function findRepoInSetting() {
+            const repoName = getRepoName();
+            const jsonData = options.config;
+            if (jsonData.Repository && jsonData.Repository[repoName]) {
+                return jsonData.Repository[repoName];
+            }
+            return;
+        };
+        return findRepoInSetting();
     }
 }
+
+
 
 function getPullNumberFromURL() {
     return parseInt(window.location.href.match(/\/(\d+)(#|$)/)[1], 10);
@@ -50,6 +126,20 @@ function createSummaryElement() {
     return summaryElement;
 }
 
+function appendErrorElement(labelsElement, id, errorText, actionText, className) {
+    if (!document.getElementById(id)) {
+        const label = document.createElement("p");
+        label.innerHTML = `
+            <span class="d-flex min-width-0 flex-1 js-hovercard-left" id="${id}">
+              <a class="${className} assignee text-center" href="https://ci.parcsis.org/login.html" target="_blank"style="width: 100%;">
+              <div>${errorText}</div>
+                <div class="v-align-middle">${actionText}</div>
+              </a>
+            </span>`;
+        labelsElement.appendChild(label);
+    }
+}
+
 function createLoaderElement() {
     const loaderElement = document.createElement("div");
     loaderElement.setAttribute("id", "tc-loader");
@@ -66,74 +156,93 @@ function createLoaderElement() {
     return loaderElement;
 }
 
-function createLabelsElement(labelsData) {
+async function fetchBuilds(builds, pull) {
+    const requests = builds.map(data =>
+        new Promise(async (resolve, reject) => {
+            try {
+                const response = await chrome.runtime.sendMessagePromise({
+                    command: "getBuild",
+                    buildType: data.BuildType,
+                    pull: pull
+                });
+
+                resolve({ ...data, response });
+            } catch (error) {
+                reject(error);
+            }
+        })
+    );
+
+    return await Promise.all(requests);
+}
+
+function createLabelsElement(builds) {
     const pull = getPullNumberFromURL();
     const labelsElement = document.createElement("div");
     labelsElement.classList.add("flex-wrap");
     labelsElement.classList.add("sidebar-assignee");
-    labelsElement.addEventListener('click', handleBuildButtonClick);
+    const loaderElement = createLoaderElement();
+    labelsElement.appendChild(loaderElement);
 
-    for (const data of labelsData) {
-        chrome.runtime.sendMessage({
-            command: 'getBuild',
-            isLinux: data.isLinux,
-            pull: pull
-        }, function (response) {
-            if (response.response.isAuthorized === false) {
-                const isNeedAuthorized = document.getElementById('isNeedAuthorized');
-                if (isNeedAuthorized === null) {
-                    const label = document.createElement("p");
-                    label.innerHTML = `
-                <span class="d-flex min-width-0 flex-1 js-hovercard-left" id="isNeedAuthorized">
-                  <a class="Link--primary assignee text-center" href="https://ci.parcsis.org/login.html" target="_blank"style="width: 100%;">
-                  <div>You are not authorized</div>
-                    <div class="Link--primary v-align-middle">Log in to TeamCity</div>
-                  </a>
-                </span>`;
-                    labelsElement.appendChild(label);
+    fetchBuilds(builds, pull)
+        .then(responses => {
+            labelsElement.removeChild(loaderElement);
+            for (const { response, Name, BuildType } of responses) {
+                if (response.response === null) {
+                    appendErrorElement(labelsElement, 'isRequestError', 'Failed to connect to the server', 'Try later', 'color-fg-danger');
+                    return;
                 }
-                return;
-            }
-            const buildResult = checkStatus(response.response.data);
-            let details = "";
+                if (response.response.isAuthorized === false) {
+                    appendErrorElement(labelsElement, 'isNeedAuthorized', 'You are not authorized', 'Log in to TeamCity', 'Link--primary');
+                    return;
+                }
 
-            if (buildResult === ResultStatus.SUCCESS) {
-                details = createBuildDetailsElement(
-                    `Last build: ${formatDate(response.response.data.build[0].finishOnAgentDate)}`,
-                    createSvgElement("M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z", "octicon-check color-fg-success")
-                );
-            } else if (buildResult === ResultStatus.FAILURE) {
-                details = createBuildDetailsElement(
-                    `Last build: ${formatDate(response.response.data.build[0].finishOnAgentDate)}`,
-                    createSvgElement("M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.749.749 0 0 1 1.275.326.749.749 0 0 1-.215.734L9.06 8l3.22 3.22a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L8 9.06l-3.22 3.22a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z", "octicon-x color-fg-danger")
-                );
-            } else if (buildResult === ResultStatus.RUNNING) {
-                details = createBuildDetailsElement(
-                    "Build in progress",
-                    createSvgElement("M8 4a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z", "octicon-x hx_dot-fill-pending-icon")
-                );
-            }
+                const buildResult = checkStatus(response.response.data);
+                let details = "";
 
-            const label = document.createElement("p");
-            label.dataset.isLinux = data.isLinux;
-            label.innerHTML = `
-            <span class="float-right position-relative">
-              <button class="Button Button--link">
-                <span class="Button-content">
-                  <span class="Button-label">Run Build</span>
-                </span>
-              </button>
-            </span>
-            <span class="d-flex min-width-0 flex-1 js-hovercard-left">
-              <a class="Link--primary assignee" href="${response.response.data.count === 0 ? data.href : response.response.data.build[0].webUrl}" target="_blank">
-                <div class="Link--primary v-align-middle">${data.text}</div>
-                ${details}
-              </a>
-            </span>`;
-            labelsElement.appendChild(label);
+                if (buildResult === cs.resultStatus.SUCCESS) {
+                    details = createBuildDetailsElement(
+                        `Last build: ${formatDate(response.response.data.build[0].finishOnAgentDate)}`,
+                        createSvgElement("M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z", "octicon-check color-fg-success")
+                    );
+                } else if (buildResult === cs.resultStatus.FAILURE) {
+                    details = createBuildDetailsElement(
+                        `Last build: ${formatDate(response.response.data.build[0].finishOnAgentDate)}`,
+                        createSvgElement("M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.749.749 0 0 1 1.275.326.749.749 0 0 1-.215.734L9.06 8l3.22 3.22a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L8 9.06l-3.22 3.22a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z", "octicon-x color-fg-danger")
+                    );
+                } else if (buildResult === cs.resultStatus.RUNNING) {
+                    details = createBuildDetailsElement(
+                        "Build in progress",
+                        createSvgElement("M8 4a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z", "octicon-x hx_dot-fill-pending-icon")
+                    );
+                }
+
+                const label = document.createElement("p");
+                const defaultHref = `${options.config.BaseUrl}buildConfiguration/${BuildType}?mode=builds#all-projects`;
+                label.innerHTML = `
+                    <span class="float-right position-relative">
+                    <button class="Button Button--link">
+                        <span class="Button-content">
+                        <span class="Button-label">Run Build</span>
+                        </span>
+                    </button>
+                    </span>
+                    <span class="d-flex min-width-0 flex-1 js-hovercard-left">
+                    <a class="Link--primary assignee" href="${response.response.data.count === 0 ? defaultHref : response.response.data.build[0].webUrl}" target="_blank">
+                        <div class="Link--primary v-align-middle">${Name}</div>
+                        ${details}
+                    </a>
+                    </span>`;
+                labelsElement.appendChild(label);
+
+                const button = label.querySelector(".Button");
+                button.addEventListener("click", (event) => handleBuildButtonClick(event, { BuildType, pull }));
+            };
+        })
+        .catch(error => {
+            console.error("Ошибка при выполнении запросов:", error);
+            labelsElement.removeChild(loaderElement);
         });
-    };
-
     return labelsElement;
 }
 
@@ -153,17 +262,16 @@ function createBuildDetailsElement(text, svgElement) {
 }
 
 function addBuildInTeamCityMenu() {
+    const buildSetting = cs.getRepoBuildSetting();
+    if (!buildSetting) {
+        return;
+    }
     const projectsMenu = document.getElementById('projects-select-menu');
     const parent = projectsMenu.closest('.discussion-sidebar-item.js-discussion-sidebar-item');
-    const labelsData = [
-        { text: 'CasePro pull requests', isLinux: false, href: 'https://ci.parcsis.org/buildConfiguration/CasePro_Pulls_CaseProBuildPullSite?mode=builds#all-projects' },
-        { text: 'CasePro pull requests (Linux)', isLinux: true, href: 'https://ci.parcsis.org/buildConfiguration/CasePro_Linux_BuildDockerImagesPulls?mode=builds#all-projects' },
-    ];
-
     const sidebarItem = createSidebarItem();
     const detailsElement = createDetailsElement();
     const summaryElement = createSummaryElement();
-    const labelsElement = createLabelsElement(labelsData);
+    const labelsElement = createLabelsElement(buildSetting);
 
     detailsElement.appendChild(summaryElement);
     sidebarItem.appendChild(detailsElement);
@@ -171,18 +279,15 @@ function addBuildInTeamCityMenu() {
     parent.parentNode.insertBefore(sidebarItem, parent);
 }
 
-function handleBuildButtonClick(event) {
+function handleBuildButtonClick(event, { BuildType, pull }) {
+    event.preventDefault();
     const button = event.target.closest('.Button--link');
     if (!button) return;
-    event.preventDefault();
-    const isLinux = button.closest('p').dataset.isLinux === 'true';
-    const pull = getPullNumberFromURL();
-
     button.disabled = true;
     button.querySelector('.Button-label').textContent = 'Build started';
     chrome.runtime.sendMessage({
         command: 'runBuild',
-        isLinux: isLinux,
+        buildType: BuildType,
         pull: pull
     }, function (response) {
         if (response.state === "queued") {
@@ -226,27 +331,31 @@ function formatDate(inputDate) {
 
 function checkStatus(response) {
     if (response.count === 0) {
-        return ResultStatus.NOTBUILDS;
+        return cs.resultStatus.NOTBUILDS;
     }
 
     const status = response.build[0].status;
     const state = response.build[0].state;
 
     if (status === "SUCCESS" && state === "finished") {
-        return ResultStatus.SUCCESS;
+        return cs.resultStatus.SUCCESS;
     } else if (status === "SUCCESS" && state === "running") {
-        return ResultStatus.RUNNING;
+        return cs.resultStatus.RUNNING;
     } else if (status === "FAILURE" && state === "finished") {
-        return ResultStatus.FAILURE;
+        return cs.resultStatus.FAILURE;
     }
 }
 
-window.addEventListener('load', () => {
-    init();
-});
+chrome.runtime.sendMessagePromise = function (message) {
+    return new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage(message, response => {
+            if (chrome.runtime.lastError) {
+                reject(chrome.runtime.lastError);
+            } else {
+                resolve(response);
+            }
+        });
+    });
+};
 
-chrome.runtime.onMessage.addListener(({ type }) => {
-    if (type === 'OPEN_PULL') {
-        setTimeout(() => init(), 1000);
-    }
-});
+cs.init();

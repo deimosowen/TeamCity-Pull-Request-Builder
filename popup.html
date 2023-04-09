@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html class="is-size-7">
 
 <head>
     <title>TeamCity Builder</title>
@@ -7,14 +7,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" />
     <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="bulma.min.css" />
 </head>
 
 <body>
-    <div class="container">
-        <h1>TeamCity Pull Request Builder</h1>
-        <form>
-            <div class="form-group"></div>
-        </form>
+    <div class="card">
+        <div class="card-content">
+            <p class="title is-4">TeamCity Pull Request Builder</p>
+            <p class="subtitle pt-4">
+                <button class="button is-outlined" id="settings-btn">Options</button>
+            </p>
+        </div>
+        <footer class="card-footer">
+            <p class="card-footer-item is-justify-content-space-between px-2" id="summary"></p>
+        </footer>
     </div>
     <script src="popup.js"></script>
 </body>

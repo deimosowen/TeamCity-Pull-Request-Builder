@@ -1,9 +1,26 @@
-const CASEPRO_PULLS_BUILDS = "CasePro_Pulls_CaseProBuildPullSite";
-const CASEPRO_LINUX_BUILDS = "CasePro_Linux_BuildDockerImagesPulls";
-const TEAMCITY_URL = 'https://ci.parcsis.org/';
+const options = {
+    config: {},
+    init: async () => {
+        await options.loadConfig();
+    },
+    getConfig: async () => {
+        const { config } = await chrome.storage.local.get(["config"]);
+        return config;
+    },
+    loadConfig: async () => {
+        try {
+            const config = await options.getConfig();
+            options.config = config;
+        }
+        catch (err) {
+            console.error(err);
+        }
+    }
+};
 
 chrome.tabs.onUpdated.addListener((tabId, tab) => {
-    if (tab.url && tab.url.includes("github.com/Keepteam/CasePro/pull/")) {
+    const repositories = Object.keys(options.config.Repository);
+    if (tab.url && checkUrlIncludesRepo(tab.url, repositories)) {
         chrome.tabs.sendMessage(tabId, {
             type: "OPEN_PULL"
         });
@@ -26,9 +43,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 });
 
+function checkUrlIncludesRepo(url, repoList) {
+    for (const repo of repoList) {
+        if (url.includes(`github.com/Keepteam/${repo}/pull/`)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 async function handleGetBuild(request) {
     try {
-        const result = await getBuilds(request.isLinux, request.pull);
+        const result = await getBuilds(request.buildType, request.pull);
         return result;
     } catch (error) {
         console.error("Failed to get builds:", error);
@@ -39,7 +65,7 @@ async function handleGetBuild(request) {
 async function handleRunBuild(request) {
     try {
         const CSRFToken = await getAuthenticationTestResult();
-        const result = await runBuildQueue(request.isLinux, request.pull, CSRFToken);
+        const result = await runBuildQueue(request.buildType, request.pull, CSRFToken);
         return result;
     } catch (error) {
         console.error("Failed to run build:", error);
@@ -47,10 +73,9 @@ async function handleRunBuild(request) {
     }
 }
 
-async function getBuilds(isLinux, branch) {
-    const buildType = isLinux ? CASEPRO_LINUX_BUILDS : CASEPRO_PULLS_BUILDS;
+async function getBuilds(buildType, branch) {
     const cookie = await getCookie();
-    const url = `${TEAMCITY_URL}app/rest/builds?locator=buildType:${buildType},branch:${branch},count:1,running:any`;
+    const url = `${options.config.BaseUrl}app/rest/builds?locator=buildType:${buildType},branch:${branch},count:1,running:any`;
     const response = await fetch(url, {
         headers: {
             "Cookie": `${cookie.name}=${cookie.value}`,
@@ -75,10 +100,9 @@ async function getBuilds(isLinux, branch) {
     };
 }
 
-async function runBuildQueue(isLinux, branch, CSRFToken) {
-    const buildType = isLinux ? CASEPRO_LINUX_BUILDS : CASEPRO_PULLS_BUILDS;
+async function runBuildQueue(buildType, branch, CSRFToken) {
     const cookie = await getCookie();
-    const url = `${TEAMCITY_URL}app/rest/buildQueue`;
+    const url = `${options.config.BaseUrl}app/rest/buildQueue`;
     const body = JSON.stringify({
         branchName: branch,
         buildType: {
@@ -108,14 +132,14 @@ async function runBuildQueue(isLinux, branch, CSRFToken) {
 
 async function getCookie() {
     return new Promise(resolve => {
-        chrome.cookies.get({ url: TEAMCITY_URL, name: 'TCSESSIONID' }, function (cookie) {
+        chrome.cookies.get({ url: options.config.BaseUrl, name: 'TCSESSIONID' }, function (cookie) {
             resolve(cookie);
         });
     });
 }
 
 async function getAuthenticationTestResult() {
-    const response = await fetch(`${TEAMCITY_URL}authenticationTest.html?csrf`, {
+    const response = await fetch(`${options.config.BaseUrl}authenticationTest.html?csrf`, {
         method: 'GET'
     });
 
@@ -125,3 +149,5 @@ async function getAuthenticationTestResult() {
         throw new Error(`Failed to get authentication test result: ${response.statusText}`);
     }
 }
+
+options.init();
