@@ -1,7 +1,7 @@
 # TeamCity Pull Request Builder
 
 ## Description
-The TeamCity Pull Request Builder is a Google Chrome plugin that allows you to automatically trigger builds of your project that are associated with a specific pull request.
+The TeamCity-Pull-Request-Builder is a Google Chrome plugin that allows you to automatically trigger builds of your project that are associated with a specific pull request.
 
 ## Installation
 1. Navigate to the TeamCity-Pull-Request-Builder plugin page on the Chrome Web Store using this [link](https://chrome.google.com/webstore/detail/teamcity-pull-request-bui/jeddilgijkpgnncoolllmmjcaplpeijj).
