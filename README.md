@@ -13,7 +13,7 @@ The plugin is configured through the Options page by editing a JSON configuratio
 Example settings:
 ```json
 {
-    "BaseUrl": "https://ci.parcsis.org/",
+    "BaseUrl": "https://yourteamcityserver.com/",
     "Repository": {
         "CasePro": [
             {
