@@ -15,7 +15,7 @@ Example settings:
 {
     "BaseUrl": "https://yourteamcityserver.com/",
     "Repository": {
-        "CasePro": [
+        "MyRepo": [
             {
                 "BuildType": "Tests_0",
                 "Name": "tests 0"
