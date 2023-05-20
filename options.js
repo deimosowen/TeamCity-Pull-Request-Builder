@@ -1,4 +1,5 @@
 const options = {
+    fields: ["BaseUrl", "Username", "Password", "Repository"],
     elements: {
         btnPrettifyJson: document.getElementById('prettifyJson'),
         btnSaveJson: document.getElementById('saveJson'),
@@ -31,7 +32,13 @@ const options = {
             if (!config) {
                 config = await options.setDefaultConfig();
             }
-            const formattedJSON = JSON.stringify(config, undefined, 4);
+            let sortedJsonObj = {};
+            for (let i = 0; i < options.fields.length; i++) {
+                if (options.fields[i] in config) {
+                    sortedJsonObj[options.fields[i]] = config[options.fields[i]];
+                }
+            }
+            const formattedJSON = JSON.stringify(sortedJsonObj, undefined, 4);
             options.elements.optionsJson.value = formattedJSON;
         }
         catch (err) {
@@ -43,34 +50,45 @@ const options = {
         if (options.validConfig()) {
             const jsonText = options.elements.optionsJson.value;
             const parsedJSON = JSON.parse(jsonText);
+            if (parsedJSON.BaseUrl && !parsedJSON.BaseUrl.endsWith("/")) {
+                parsedJSON.BaseUrl += "/";
+            }
             await chrome.storage.local.set({ config: parsedJSON });
+            chrome.runtime.sendMessage({ command: 'reloadConfig' });
             options.createNotify('is-success', 'Data saved successfully');
         }
     },
     setDefaultConfig: async () => {
         const defaultConfig = {
-            "BaseUrl": "https://ci.parcsis.org/",
+            "BaseUrl": "https://yourteamcityserver.com/",
+            "Username": "MyLogin",
+            "Password": "MyPassword",
             "Repository": {
-                "CasePro": [
+                "MyRepo": [
                     {
-                        "BuildType": "CasePro_Pulls_CaseProBuildPullSite",
-                        "Name": "CasePro pull requests"
+                        "BuildType": "Tests_0",
+                        "Name": "tests 0"
                     },
                     {
-                        "BuildType": "CasePro_Linux_BuildDockerImagesPulls",
-                        "Name": "CasePro pull requests (Linux)"
+                        "BuildType": "Tests_1",
+                        "Name": "tests 1"
                     }
                 ]
             }
         };
-        await chrome.storage.local.set({ config: defaultConfig });
         return defaultConfig;
     },
     validConfig: () => {
         try {
             const jsonText = options.elements.optionsJson.value;
             const parsedJSON = JSON.parse(jsonText);
-            const formattedJSON = JSON.stringify(parsedJSON, undefined, 4);
+            for (const field of options.fields) {
+                if (!(field in parsedJSON)) {
+                    options.createNotify('is-danger', `Missing required field: ${field}`);
+                    return false;
+                }
+            }
+            const formattedJSON = JSON.stringify(parsedJSON, null, 4);
             options.elements.optionsJson.value = formattedJSON;
             options.createNotify('is-success', 'Valid JSON structure');
             return true;
