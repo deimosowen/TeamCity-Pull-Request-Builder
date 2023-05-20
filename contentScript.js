@@ -10,33 +10,20 @@ const options = {
     loadConfig: async () => {
         try {
             let config = await options.getConfig();
-            if (!config) {
-                config = await options.setDefaultConfig();
-            }
             options.config = config;
         }
         catch (err) {
             console.error(err);
         }
     },
-    setDefaultConfig: async () => {
-        const defaultConfig = {
-            "BaseUrl": "https://ci.parcsis.org/",
-            "Repository": {
-                "CasePro": [
-                    {
-                        "BuildType": "CasePro_Pulls_CaseProBuildPullSite",
-                        "Name": "CasePro pull requests"
-                    },
-                    {
-                        "BuildType": "CasePro_Linux_BuildDockerImagesPulls",
-                        "Name": "CasePro pull requests (Linux)"
-                    }
-                ]
+    validConfig: async () => {
+        const requiredFields = ["BaseUrl", "Username", "Password", "Repository"];
+        for (const field of requiredFields) {
+            if (!options.config.hasOwnProperty(field)) {
+                return false;
             }
-        };
-        await chrome.storage.local.set({ config: defaultConfig });
-        return defaultConfig;
+        }
+        return true;
     }
 };
 
@@ -45,6 +32,11 @@ const cs = {
         SUCCESS: "SUCCESS",
         RUNNING: "RUNNING",
         FAILURE: "FAILURE"
+    },
+    command: {
+        GET_BUILD: 'getBuild',
+        RUN_BUILD: 'runBuild',
+        RELOAD_CONFIG: 'reloadConfig'
     },
     init: async () => {
         await options.init();
@@ -55,7 +47,6 @@ const cs = {
 
         chrome.runtime.onMessage.addListener(({ type }) => {
             if (type === 'OPEN_PULL') {
-                console.log('OPEN_PULL');
                 setTimeout(async () => await cs.render(), 1000);
             }
         });
@@ -85,18 +76,16 @@ const cs = {
     }
 }
 
-
-
 function getPullNumberFromURL() {
     return parseInt(window.location.href.match(/\/(\d+)(#|$)/)[1], 10);
 }
 
 function isCleanUrl() {
-    const regex = /\/(\d+\/?)?$/;
+    const regex = /^\/[^\/]+\/[^\/]+\/pull\/\d+\/?$/;
     const path = window.location.pathname;
     const hostname = window.location.hostname;
-    const isCorrectHost = (hostname === 'github.com' && path.startsWith('/Keepteam/CasePro'));
-    return isCorrectHost && regex.test(path);
+    const isCorrectHost = (hostname === 'github.com' && regex.test(path));
+    return isCorrectHost;
 }
 
 function createSidebarItem() {
@@ -131,10 +120,10 @@ function appendErrorElement(labelsElement, id, errorText, actionText, className)
         const label = document.createElement("p");
         label.innerHTML = `
             <span class="d-flex min-width-0 flex-1 js-hovercard-left" id="${id}">
-              <a class="${className} assignee text-center" href="https://ci.parcsis.org/login.html" target="_blank"style="width: 100%;">
+              <div class="${className} assignee text-center" style="width: 100%;">
               <div>${errorText}</div>
                 <div class="v-align-middle">${actionText}</div>
-              </a>
+              </div>
             </span>`;
         labelsElement.appendChild(label);
     }
@@ -161,11 +150,10 @@ async function fetchBuilds(builds, pull) {
         new Promise(async (resolve, reject) => {
             try {
                 const response = await chrome.runtime.sendMessagePromise({
-                    command: "getBuild",
+                    command: cs.command.GET_BUILD,
                     buildType: data.BuildType,
                     pull: pull
                 });
-
                 resolve({ ...data, response });
             } catch (error) {
                 reject(error);
@@ -184,64 +172,74 @@ function createLabelsElement(builds) {
     const loaderElement = createLoaderElement();
     labelsElement.appendChild(loaderElement);
 
-    fetchBuilds(builds, pull)
-        .then(responses => {
-            labelsElement.removeChild(loaderElement);
-            for (const { response, Name, BuildType } of responses) {
-                if (response.response === null) {
-                    appendErrorElement(labelsElement, 'isRequestError', 'Failed to connect to the server', 'Try later', 'color-fg-danger');
-                    return;
-                }
-                if (response.response.isAuthorized === false) {
-                    appendErrorElement(labelsElement, 'isNeedAuthorized', 'You are not authorized', 'Log in to TeamCity', 'Link--primary');
-                    return;
-                }
+    options.validConfig()
+        .then((status) => {
+            if (status) {
+                fetchBuilds(builds, pull)
+                    .then(responses => {
+                        labelsElement.removeChild(loaderElement);
+                        for (const { response, Name, BuildType } of responses) {
+                            if (response.response === null) {
+                                appendErrorElement(labelsElement, 'isRequestError', 'Failed to connect to the server', "Please verify connection settings in 'Options' page.", 'color-fg-danger');
+                                return;
+                            }
+                            if (response.response.isAuthorized === false) {
+                                appendErrorElement(labelsElement, 'isNeedAuthorized', 'You are not authorized', 'Log in to TeamCity', 'Link--primary');
+                                return;
+                            }
 
-                const buildResult = checkStatus(response.response.data);
-                let details = "";
+                            const buildResult = checkStatus(response.response.data);
+                            let details = "";
 
-                if (buildResult === cs.resultStatus.SUCCESS) {
-                    details = createBuildDetailsElement(
-                        `Last build: ${formatDate(response.response.data.build[0].finishOnAgentDate)}`,
-                        createSvgElement("M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z", "octicon-check color-fg-success")
-                    );
-                } else if (buildResult === cs.resultStatus.FAILURE) {
-                    details = createBuildDetailsElement(
-                        `Last build: ${formatDate(response.response.data.build[0].finishOnAgentDate)}`,
-                        createSvgElement("M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.749.749 0 0 1 1.275.326.749.749 0 0 1-.215.734L9.06 8l3.22 3.22a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L8 9.06l-3.22 3.22a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z", "octicon-x color-fg-danger")
-                    );
-                } else if (buildResult === cs.resultStatus.RUNNING) {
-                    details = createBuildDetailsElement(
-                        "Build in progress",
-                        createSvgElement("M8 4a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z", "octicon-x hx_dot-fill-pending-icon")
-                    );
-                }
+                            if (buildResult === cs.resultStatus.SUCCESS) {
+                                details = createBuildDetailsElement(
+                                    `Last build: ${formatDate(response.response.data.build[0].finishOnAgentDate)}`,
+                                    createSvgElement("M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z", "octicon-check color-fg-success")
+                                );
+                            } else if (buildResult === cs.resultStatus.FAILURE) {
+                                details = createBuildDetailsElement(
+                                    `Last build: ${formatDate(response.response.data.build[0].finishOnAgentDate)}`,
+                                    createSvgElement("M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.749.749 0 0 1 1.275.326.749.749 0 0 1-.215.734L9.06 8l3.22 3.22a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L8 9.06l-3.22 3.22a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z", "octicon-x color-fg-danger")
+                                );
+                            } else if (buildResult === cs.resultStatus.RUNNING) {
+                                details = createBuildDetailsElement(
+                                    "Build in progress",
+                                    createSvgElement("M8 4a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z", "octicon-x hx_dot-fill-pending-icon")
+                                );
+                            }
 
-                const label = document.createElement("p");
-                const defaultHref = `${options.config.BaseUrl}buildConfiguration/${BuildType}?mode=builds#all-projects`;
-                label.innerHTML = `
-                    <span class="float-right position-relative">
-                    <button class="Button Button--link">
-                        <span class="Button-content">
-                        <span class="Button-label">Run Build</span>
+                            const label = document.createElement("p");
+                            const defaultHref = `${options.config.BaseUrl}buildConfiguration/${BuildType}?mode=builds#all-projects`;
+                            label.innerHTML = `
+                        <span class="float-right position-relative">
+                        <button class="Button Button--link">
+                            <span class="Button-content">
+                            <span class="Button-label">Run Build</span>
+                            </span>
+                        </button>
                         </span>
-                    </button>
-                    </span>
-                    <span class="d-flex min-width-0 flex-1 js-hovercard-left">
-                    <a class="Link--primary assignee" href="${response.response.data.count === 0 ? defaultHref : response.response.data.build[0].webUrl}" target="_blank">
-                        <div class="Link--primary v-align-middle">${Name}</div>
-                        ${details}
-                    </a>
-                    </span>`;
-                labelsElement.appendChild(label);
+                        <span class="d-flex min-width-0 flex-1 js-hovercard-left">
+                        <a class="Link--primary assignee" href="${response.response.data.count === 0 ? defaultHref : response.response.data.build[0].webUrl}" target="_blank">
+                            <div class="Link--primary v-align-middle">${Name}</div>
+                            ${details}
+                        </a>
+                        </span>`;
+                            labelsElement.appendChild(label);
 
-                const button = label.querySelector(".Button");
-                button.addEventListener("click", (event) => handleBuildButtonClick(event, { BuildType, pull }));
-            };
-        })
-        .catch(error => {
-            console.error("Ошибка при выполнении запросов:", error);
-            labelsElement.removeChild(loaderElement);
+                            const button = label.querySelector(".Button");
+                            button.addEventListener("click", (event) => handleBuildButtonClick(event, { BuildType, pull }));
+                        };
+                    })
+                    .catch(error => {
+                        console.log(error);
+                        console.error("Ошибка при выполнении запросов:", error);
+                        labelsElement.removeChild(loaderElement);
+                    });
+            }
+            else {
+                labelsElement.removeChild(loaderElement);
+                appendErrorElement(labelsElement, 'isRequestError', 'Failed to connect to the server', "Please verify connection settings in 'Options' page.", 'color-fg-danger');
+            }
         });
     return labelsElement;
 }
@@ -286,7 +284,7 @@ function handleBuildButtonClick(event, { BuildType, pull }) {
     button.disabled = true;
     button.querySelector('.Button-label').textContent = 'Build started';
     chrome.runtime.sendMessage({
-        command: 'runBuild',
+        command: cs.command.RUN_BUILD,
         buildType: BuildType,
         pull: pull
     }, function (response) {
