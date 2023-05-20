@@ -206,32 +206,34 @@ function createLabelsElement(builds) {
                                     "Build in progress",
                                     createSvgElement("M8 4a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z", "octicon-x hx_dot-fill-pending-icon")
                                 );
+                            } else {
+                                details = createBuildDetailsElement("Build not initiated yet");
                             }
 
-                            const label = document.createElement("p");
-                            const defaultHref = `${options.config.BaseUrl}buildConfiguration/${BuildType}?mode=builds#all-projects`;
-                            label.innerHTML = `
-                        <span class="float-right position-relative">
-                        <button class="Button Button--link">
-                            <span class="Button-content">
-                            <span class="Button-label">Run Build</span>
-                            </span>
-                        </button>
-                        </span>
-                        <span class="d-flex min-width-0 flex-1 js-hovercard-left">
-                        <a class="Link--primary assignee" href="${response.response.data.count === 0 ? defaultHref : response.response.data.build[0].webUrl}" target="_blank">
-                            <div class="Link--primary v-align-middle">${Name}</div>
-                            ${details}
-                        </a>
-                        </span>`;
-                            labelsElement.appendChild(label);
+                            const item = document.createElement("div");
+                            item.classList.add("mb-2");
 
-                            const button = label.querySelector(".Button");
+                            const defaultHref = `${options.config.BaseUrl}buildConfiguration/${BuildType}?mode=builds#all-projects`;
+
+                            const label = document.createElement("div");
+                            label.classList.add("Link--primary");
+                            label.classList.add("v-align-middle");
+                            label.innerHTML = `<a class="Link--primary assignee" href="${response.response.data.count === 0 ? defaultHref : response.response.data.build[0].webUrl}" target="_blank">${Name}</a>`;
+                            item.appendChild(label);
+
+                            const configurations = document.createElement("div");
+                            configurations.classList.add("d-flex");
+                            configurations.classList.add("flex-lg-justify-between");
+                            configurations.innerHTML = `${details}`;
+                            item.appendChild(configurations);
+
+                            labelsElement.appendChild(item);
+
+                            const button = item.querySelector(".Button");
                             button.addEventListener("click", (event) => handleBuildButtonClick(event, { BuildType, pull }));
                         };
                     })
                     .catch(error => {
-                        console.log(error);
                         console.error("Ошибка при выполнении запросов:", error);
                         labelsElement.removeChild(loaderElement);
                     });
@@ -251,12 +253,19 @@ function createSvgElement(path, extraClasses) {
       </svg>`;
 }
 
-function createBuildDetailsElement(text, svgElement) {
+function createBuildDetailsElement(text, svgElement = '') {
     return `
-      <div class="color-fg-muted reason text-small text-normal v-align-middle">
+    <div class="color-fg-muted reason text-small text-normal v-align-middle">
         ${text}
         ${svgElement}
-      </div>`;
+    </div>
+    <div class="position-relative">
+    <button class="Button Button--link">
+        <span class="Button-content">
+            <span class="Button-label">Run Build</span>
+        </span>
+    </button>
+</div>`;
 }
 
 function addBuildInTeamCityMenu() {
