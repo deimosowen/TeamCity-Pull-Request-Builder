@@ -177,8 +177,37 @@ function createLabelsElement(builds) {
             if (status) {
                 fetchBuilds(builds, pull)
                     .then(responses => {
+                        responses.sort((a, b) => {
+                            const defaultGroup = 'zzzz';
+                            const defaultOrder = Infinity;
+
+                            const groupA = a.Group != null ? a.Group : defaultGroup;
+                            const orderA = a.Order != null ? a.Order : defaultOrder;
+                            const groupB = b.Group != null ? b.Group : defaultGroup;
+                            const orderB = b.Order != null ? b.Order : defaultOrder;
+
+                            if (groupA === defaultGroup && groupB === defaultGroup) {
+                                return orderA - orderB;
+                            }
+
+                            if (groupA === defaultGroup || groupB === defaultGroup) {
+                                return groupA === defaultGroup ? -1 : 1;
+                            }
+
+                            if (groupA < groupB) {
+                                return -1;
+                            } else if (groupA > groupB) {
+                                return 1;
+                            } else {
+                                return orderA - orderB;
+                            }
+                        });
+
+                        let currentGroup = null;
+                        let groupElement = null;
+
                         labelsElement.removeChild(loaderElement);
-                        for (const { response, Name, BuildType } of responses) {
+                        for (const { response, Name, BuildType, Group } of responses) {
                             if (response.response === null) {
                                 appendErrorElement(labelsElement, 'isRequestError', 'Failed to connect to the server', "Please verify connection settings in 'Options' page.", 'color-fg-danger');
                                 return;
@@ -187,7 +216,18 @@ function createLabelsElement(builds) {
                                 appendErrorElement(labelsElement, 'isNeedAuthorized', 'You are not authorized', 'Log in to TeamCity', 'Link--primary');
                                 return;
                             }
-
+                            if (Group != currentGroup) {
+                                currentGroup = Group;
+                                if (Group) {
+                                    groupElement = document.createElement("div");
+                                    groupElement.classList.add("group");
+                                    const groupTitle = createGroupTitle(Group);
+                                    groupElement.appendChild(groupTitle);
+                                    labelsElement.appendChild(groupElement);
+                                }
+                            } else {
+                                groupElement = labelsElement;
+                            }
                             const buildResult = checkStatus(response.response.data);
                             let details = "";
 
@@ -227,8 +267,7 @@ function createLabelsElement(builds) {
                             configurations.innerHTML = `${details}`;
                             item.appendChild(configurations);
 
-                            labelsElement.appendChild(item);
-
+                            groupElement.appendChild(item);
                             const button = item.querySelector(".Button");
                             button.addEventListener("click", (event) => handleBuildButtonClick(event, { BuildType, pull }));
                         };
@@ -244,6 +283,35 @@ function createLabelsElement(builds) {
             }
         });
     return labelsElement;
+}
+
+function createGroupTitle(title) {
+    let container = document.createElement("div");
+    container.style.display = "flex";
+    container.style.alignItems = "center";
+    container.style.justifyContent = "center";
+    container.style.width = "100%";
+
+    let line1 = document.createElement("span");
+    line1.style.flexGrow = ".15";
+    line1.style.height = "1px";
+    line1.style.background = "#d8dee4";
+    container.appendChild(line1);
+
+    let text = document.createElement("span");
+    text.textContent = title;
+    text.style.margin = "0 10px";
+    text.classList.add("text-bold");
+    text.classList.add("discussion-sidebar-heading");
+    container.appendChild(text);
+
+    let line2 = document.createElement("span");
+    line2.style.flexGrow = "1";
+    line2.style.height = "1px";
+    line2.style.background = "#d8dee4";
+    container.appendChild(line2);
+
+    return container;
 }
 
 function createSvgElement(path, extraClasses) {
