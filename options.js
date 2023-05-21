@@ -48,14 +48,22 @@ const options = {
     },
     saveConfig: async () => {
         if (options.validConfig()) {
+            const currentConfig = await options.getConfig();
             const jsonText = options.elements.optionsJson.value;
-            const parsedJSON = JSON.parse(jsonText);
-            if (parsedJSON.BaseUrl && !parsedJSON.BaseUrl.endsWith("/")) {
-                parsedJSON.BaseUrl += "/";
+            const newConfig = JSON.parse(jsonText);
+            if (newConfig.BaseUrl && !newConfig.BaseUrl.endsWith("/")) {
+                newConfig.BaseUrl += "/";
             }
-            await chrome.storage.local.set({ config: parsedJSON });
-            chrome.runtime.sendMessage({ command: 'reloadConfig' });
+            await chrome.storage.local.set({ config: newConfig });
+            if (checkCredentialsChanged(currentConfig, newConfig)) {
+                chrome.runtime.sendMessage({ command: 'reloadConfig' });
+            }
             options.createNotify('is-success', 'Data saved successfully');
+        }
+
+        function checkCredentialsChanged(currentSettings, newSettings) {
+            return currentSettings.Username !== newSettings.Username ||
+                currentSettings.Password !== newSettings.Password;
         }
     },
     setDefaultConfig: async () => {
