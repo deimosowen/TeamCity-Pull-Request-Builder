@@ -7,6 +7,37 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" />
     <link rel="stylesheet" href="bulma.min.css" />
+    <style>
+        .content .highlight:not(:first-child) {
+            margin-top: 1em;
+        }
+
+        .content .highlight {
+            margin-left: 0;
+            margin-right: 0;
+            text-align: left;
+        }
+
+        .highlight pre {
+            background-color: transparent;
+            color: currentColor;
+            font-size: 1em;
+            line-height: 1.375;
+            margin: 0 !important;
+            padding: 1.25em 1.5em;
+            white-space: pre;
+            word-break: break-word;
+            display: flex;
+        }
+
+        .highlight {
+            background-color: #1f2330;
+            border-radius: 6px;
+            color: #d9e0e8;
+            font-size: .75em;
+            position: relative;
+        }
+    </style>
 </head>
 
 <body class="layout-documentation page-helpers">
@@ -42,36 +73,52 @@
     <div id="modal-help" class="modal">
         <div class="modal-background"></div>
         <div class="modal-content">
-            <div class="content box is-size-6">
-                <h1>Description</h1>
-                <p>
-                <h4 class="m-0">1. BaseUrl (Обязательный параметр):</h4>
-                Адрес сервера TeamCity. Замените значение <strong>"https://ci.parcsis.org/"</strong> на адрес вашего
-                сервера
-                TeamCity.</p>
-
-                <p>
-                <h4 class="m-0">2. Repository (Обязательный параметр):</h4>
-                Словарь, содержащий информацию о репозиториях, на которых будет доступна вкладка <strong>"Build in
-                    TeamCity"</strong>.
-                Каждый ключ в этом словаре представляет собой название репозитория. В приведенном примере ключ -
-                <strong>"CasePro"</strong>.</p>
-
-                <p>
-                <h4 class="m-0">2.1 CasePro:</h4>
-                Массив, содержащий объекты с информацией о конфигурациях сборки TeamCity для репозитория
-                <strong>"CasePro"</strong>.
-                Замените <strong>"CasePro"</strong> на название вашего репозитория и добавьте соответствующие объекты с
-                информацией о
-                конфигурациях сборки.</p>
-
-                <p>
-                <h4 class="m-0">2.1.1 BuildType (Обязательный параметр):</h4>
-                Наименование конфигурации в TeamCity.</p>
-
-                <p>
-                <h4 class="m-0">2.1.2 Name (Обязательный параметр):</h4>
-                Отображаемое имя для конфигурации сборки.</p>
+            <div class="content box">
+                <h1>Configuration Parameters:</h1>
+                <ul>
+                    <li><code>BaseUrl</code>: (Required) The URL of your TeamCity server. Example:
+                        <code>https://yourteamcityserver.com/</code>.
+                    </li>
+                    <li><code>Username</code>: (Required) The username for your TeamCity server.</li>
+                    <li><code>Password</code>: (Required) The password for your TeamCity server.</li>
+                    <li><code>Repository</code>: (Required) An object where each property represents a repository, and
+                        the value is an array of build configuration objects. Replace <code>"MyRepo"</code> with the
+                        name of your
+                        repository.</li>
+                    <li><code>BuildType</code>: (Required) The identifier of the build type in TeamCity.</li>
+                    <li><code>Name</code>: (Required) The name that will be displayed in the plugin interface.</li>
+                    <li><code>Group</code>: (Optional) The group to which this build configuration belongs. If
+                        specified, the build configurations will be grouped under this name in the plugin interface.
+                    </li>
+                    <li><code>Order</code>: (Optional) The order number for displaying the build configurations within a
+                        group. It is used to set the display order in the plugin interface.</li>
+                </ul>
+                <div class="content">
+                    <figure class="highlight">
+                        <pre>
+                            <code class="language-markdown" data-lang="markdown">BaseUrl (Required)
+Username (Required)
+Password (Required)
+Repository (Required)
+│
+└── "MyRepo" (Ваше имя репозитория)
+    ├── [0]
+    │   ├── BuildType (Required)
+    │   ├── Name (Required)
+    │   ├── Group (Optional)
+    │   └── Order (Optional)
+    │
+    ├── [1]
+    │   ├── BuildType (Required)
+    │   ├── Name (Required)
+    │   ├── Group (Optional)
+    │   └── Order (Optional)
+    │
+    ├── [2]...           
+                            </code>
+                        </pre>
+                    </figure>
+                </div>
             </div>
         </div>
         <button class="modal-close is-large" aria-label="close"></button>
