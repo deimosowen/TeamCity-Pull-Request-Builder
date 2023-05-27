@@ -14,8 +14,8 @@ Example settings:
 ```json
 {
     "BaseUrl": "https://yourteamcityserver.com/",
-    "Username":"MyLogin",
-    "Password":"MyPassword",
+    "Username": "MyLogin",
+    "Password": "MyPassword",
     "Repository": {
         "MyRepo": [
             {
