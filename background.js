@@ -92,6 +92,10 @@ const API = {
         }
     },
     getBuilds: async (request) => {
+        const buildQueue = await API.getBuildQueue(request);
+        if (buildQueue !== null && buildQueue.data !== null && buildQueue.data.count !== 0) {
+            return buildQueue;
+        }
         const url = `${options.config.BaseUrl}app/rest/builds?locator=buildType:${request.buildType},branch:${request.pull},count:1,running:any`;
         const response = await fetch(url, {
             headers: {
@@ -106,6 +110,34 @@ const API = {
         const contentType = response.headers.get("content-type");
         if (contentType && contentType.indexOf("application/json") !== -1) {
             data = await response.json();
+        } else {
+            data = await response.text();
+        }
+        return {
+            isAuthorized: !response.redirected,
+            data: !response.redirected ? data : null
+        };
+    },
+    getBuildQueue: async (request) => {
+        const url = `${options.config.BaseUrl}app/rest/buildQueue?locator=buildType:(id:${request.buildType})`;
+        const response = await fetch(url, {
+            headers: {
+                'Authorization': API.getCredentials(),
+                "Accept": "application/json"
+            }
+        });
+        if (!response.ok) {
+            return {
+                isAuthorized: !response.redirected,
+                data: null
+            };
+        }
+        let data = null;
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.indexOf("application/json") !== -1) {
+            data = await response.json();
+            data.build = data.build.filter(item => item.branchName === request.pull);
+            console.log(data);
         } else {
             data = await response.text();
         }
