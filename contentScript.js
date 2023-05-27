@@ -409,15 +409,18 @@ function checkStatus(response) {
         return cs.resultStatus.NOTBUILDS;
     }
 
-    const status = response.build[0].status;
-    const state = response.build[0].state;
+    const { status, state } = response.build[0];
 
-    if (status === "SUCCESS" && state === "finished") {
-        return cs.resultStatus.SUCCESS;
-    } else if (status === "SUCCESS" && state === "running") {
-        return cs.resultStatus.RUNNING;
-    } else if (status === "FAILURE" && state === "finished") {
-        return cs.resultStatus.FAILURE;
+    switch (true) {
+        case (status === "SUCCESS" && state === "finished"):
+            return cs.resultStatus.SUCCESS;
+        case (status === "SUCCESS" && state === "running"):
+        case (state === "queued"):
+            return cs.resultStatus.RUNNING;
+        case (status === "FAILURE"):
+            return cs.resultStatus.FAILURE;
+        default:
+            throw new Error(`Unknown status: ${status} or state: ${state}`);
     }
 }
 
