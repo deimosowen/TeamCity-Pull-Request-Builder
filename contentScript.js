@@ -31,7 +31,8 @@ const cs = {
     resultStatus: {
         SUCCESS: "SUCCESS",
         RUNNING: "RUNNING",
-        FAILURE: "FAILURE"
+        FAILURE: "FAILURE",
+        QUEUED: "QUEUED",
     },
     command: {
         GET_BUILD: 'getBuild',
@@ -208,12 +209,8 @@ function createLabelsElement(builds) {
 
                         labelsElement.removeChild(loaderElement);
                         for (const { response, Name, BuildType, Group } of responses) {
-                            if (response.response === null) {
+                            if (response.response === null || !response.response.isAuthorized) {
                                 appendErrorElement(labelsElement, 'isRequestError', 'Failed to connect to the server', "Please verify connection settings in 'Options' page.", 'color-fg-danger');
-                                return;
-                            }
-                            if (response.response.isAuthorized === false) {
-                                appendErrorElement(labelsElement, 'isNeedAuthorized', 'You are not authorized', 'Log in to TeamCity', 'Link--primary');
                                 return;
                             }
                             if (Group != currentGroup) {
@@ -230,21 +227,27 @@ function createLabelsElement(builds) {
                             }
                             const buildResult = checkStatus(response.response.data);
                             let details = "";
-
                             if (buildResult === cs.resultStatus.SUCCESS) {
                                 details = createBuildDetailsElement(
                                     `Last build: ${formatDate(response.response.data.build[0].finishOnAgentDate)}`,
                                     createSvgElement("M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z", "octicon-check color-fg-success")
                                 );
                             } else if (buildResult === cs.resultStatus.FAILURE) {
-                                details = createBuildDetailsElement(
-                                    `Last build: ${formatDate(response.response.data.build[0].finishOnAgentDate)}`,
+                                const buildText = response.response.data.build[0].finishOnAgentDate
+                                    ? `Last build: ${formatDate(response.response.data.build[0].finishOnAgentDate)}`
+                                    : `Build in progress`;
+                                details = createBuildDetailsElement(buildText,
                                     createSvgElement("M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.749.749 0 0 1 1.275.326.749.749 0 0 1-.215.734L9.06 8l3.22 3.22a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L8 9.06l-3.22 3.22a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z", "octicon-x color-fg-danger")
                                 );
                             } else if (buildResult === cs.resultStatus.RUNNING) {
                                 details = createBuildDetailsElement(
                                     "Build in progress",
                                     createSvgElement("M8 4a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z", "octicon-x hx_dot-fill-pending-icon")
+                                );
+                            } else if (buildResult === cs.resultStatus.QUEUED) {
+                                details = createBuildDetailsElement(
+                                    "Build in queue",
+                                    createSvgElement("M13 3.07v-2H3v2A5 5 0 0 0 7.65 8 5 5 0 0 0 3 13v2h10v-2a5 5 0 0 0-4.65-5A5 5 0 0 0 13 3.07zm-8.6-.6h7.2v.6a3.67 3.67 0 0 1-.14.93H4.54a3.67 3.67 0 0 1-.14-.93zM11.6 13v.6H4.4V13a3.6 3.6 0 0 1 7.2 0z", "octicon-x")
                                 );
                             } else {
                                 details = createBuildDetailsElement("Build not initiated yet");
@@ -415,8 +418,9 @@ function checkStatus(response) {
         case (status === "SUCCESS" && state === "finished"):
             return cs.resultStatus.SUCCESS;
         case (status === "SUCCESS" && state === "running"):
+            return cs.resultStatus.RUNNING
         case (state === "queued"):
-            return cs.resultStatus.RUNNING;
+            return cs.resultStatus.QUEUED;
         case (status === "FAILURE"):
             return cs.resultStatus.FAILURE;
         default:
