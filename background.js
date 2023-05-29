@@ -77,6 +77,9 @@ const API = {
     getCredentials: () => {
         return 'Basic ' + btoa(`${options.config.Username}:${options.config.Password}`);
     },
+    isUnauthorized: (response) => {
+        return response.status === 401 && response.ok == false;
+    },
     getAuthenticationTestResult: async () => {
         const response = await fetch(`${options.config.BaseUrl}authenticationTest.html?csrf`, {
             method: 'GET',
@@ -103,8 +106,12 @@ const API = {
                 "Accept": "application/json"
             }
         });
+        const isAuthorized = !API.isUnauthorized(response);
         if (!response.ok) {
-            throw new Error(response.statusText);
+            return {
+                isAuthorized: isAuthorized,
+                data: null
+            };
         }
         let data = null;
         const contentType = response.headers.get("content-type");
@@ -114,8 +121,8 @@ const API = {
             data = await response.text();
         }
         return {
-            isAuthorized: !response.redirected,
-            data: !response.redirected ? data : null
+            isAuthorized: isAuthorized,
+            data: isAuthorized ? data : null
         };
     },
     getBuildQueue: async (request) => {
@@ -126,9 +133,11 @@ const API = {
                 "Accept": "application/json"
             }
         });
+
+        const isAuthorized = !API.isUnauthorized(response);
         if (!response.ok) {
             return {
-                isAuthorized: !response.redirected,
+                isAuthorized: isAuthorized,
                 data: null
             };
         }
@@ -136,14 +145,14 @@ const API = {
         const contentType = response.headers.get("content-type");
         if (contentType && contentType.indexOf("application/json") !== -1) {
             data = await response.json();
-            data.build = data.build.filter(item => item.branchName === request.pull);
-            console.log(data);
+            data.build = data.build.filter(item => Number(item.branchName) === Number(request.pull));
+            data.count = data.build.length;
         } else {
             data = await response.text();
         }
         return {
-            isAuthorized: !response.redirected,
-            data: !response.redirected ? data : null
+            isAuthorized: isAuthorized,
+            data: isAuthorized ? data : null
         };
     },
     runBuildQueue: async (request) => {
