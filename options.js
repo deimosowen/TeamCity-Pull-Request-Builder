@@ -38,6 +38,7 @@ const options = {
                     sortedJsonObj[options.fields[i]] = config[options.fields[i]];
                 }
             }
+            sortedJsonObj.Password = PasswordMasker.applyMask(sortedJsonObj.Password);
             const formattedJSON = JSON.stringify(sortedJsonObj, undefined, 4);
             options.elements.optionsJson.value = formattedJSON;
         }
@@ -51,6 +52,7 @@ const options = {
             const currentConfig = await options.getConfig();
             const jsonText = options.elements.optionsJson.value;
             const newConfig = JSON.parse(jsonText);
+            newConfig.Password = PasswordMasker.unmask(newConfig.Password, currentConfig.Password);
             if (newConfig.BaseUrl && !newConfig.BaseUrl.endsWith("/")) {
                 newConfig.BaseUrl += "/";
             }
@@ -163,6 +165,22 @@ const options = {
                 }
             });
         });
+    }
+};
+
+const PasswordMasker = {
+    mask: "********",
+
+    isMasked: function (password) {
+        return password === this.mask;
+    },
+
+    applyMask: function () {
+        return this.mask;
+    },
+
+    unmask: function (current, original) {
+        return this.isMasked(current) ? original : current;
     }
 };
 
