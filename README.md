@@ -41,9 +41,9 @@ Example settings:
 
 ### Configuration Parameters:
 - `BaseUrl`: The base URL of your TeamCity server.
-- `Repository`: The username for your TeamCity server.
-- `Username`: The password for your TeamCity server.
-- `Password`: An object where each property represents a repository, and the value is an array of build configuration objects.
+- `Username`: The username for your TeamCity server.
+- `Password`: The password for your TeamCity server.
+- `Repository`: An object where each property represents a repository, and the value is an array of build configuration objects.
 
 Each build configuration object contains the following properties:
 - `BuildType`: The identifier of the build type in TeamCity.
