@@ -3,7 +3,7 @@ name: Issue
 about: Use this template for creating issues.
 title: ''
 labels: ''
-assignees: '@deimosowen'
+assignees: 'deimosowen'
 ---
 📌 **Current Behavior:** 
 Describe the current state or behavior that is problematic or needs enhancement.
