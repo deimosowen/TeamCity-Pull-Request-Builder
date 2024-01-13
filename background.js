@@ -39,7 +39,7 @@ const global = {
 
         function checkUrlIncludesRepo(url, repoList) {
             for (const repo of repoList) {
-                const regex = new RegExp(`github\\.com\\/.*?\\/${repo}\\/pull\\/`);
+                const regex = new RegExp(`gitlab\\.pravo\\.tech\\/.*?\\/${repo}\\/-\\/merge_requests\\/`);
                 if (regex.test(url)) {
                     return true;
                 }
@@ -99,7 +99,8 @@ const API = {
         if (buildQueue !== null && buildQueue.data !== null && buildQueue.data.count !== 0) {
             return buildQueue;
         }
-        const url = `${options.config.BaseUrl}app/rest/builds?locator=buildType:${request.buildType},branch:${request.pull},count:1,running:any`;
+        const url = `${options.config.BaseUrl}app/rest/builds?locator=buildType:${request.buildType},branch:requests/${request.pull},count:1,running:any`;
+        console.log(url);
         const response = await fetch(url, {
             headers: {
                 'Authorization': API.getCredentials(),
@@ -145,7 +146,7 @@ const API = {
         const contentType = response.headers.get("content-type");
         if (contentType && contentType.indexOf("application/json") !== -1) {
             data = await response.json();
-            data.build = data.build.filter(item => Number(item.branchName) === Number(request.pull));
+            data.build = data.build.filter(item => item.branchName === `requests/${request.pull}`);
             data.count = data.build.length;
         } else {
             data = await response.text();
@@ -159,7 +160,7 @@ const API = {
         const CSRFToken = await API.getAuthenticationTestResult();
         const url = `${options.config.BaseUrl}app/rest/buildQueue`;
         const body = JSON.stringify({
-            branchName: request.pull,
+            branchName: `requests/${request.pull}`,
             buildType: {
                 id: request.buildType
             }
