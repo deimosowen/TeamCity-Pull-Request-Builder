@@ -53,13 +53,11 @@ const cs = {
         });
     },
     render: async () => {
-        if (isCleanUrl()) {
-            addBuildInTeamCityMenu();
-        }
+        addBuildInTeamCityMenu();
     },
     getRepoBuildSetting: () => {
         function getRepoName() {
-            const regex = /https:\/\/github\.com\/[^/]+\/([^/]+)/;
+            const regex = /https:\/\/gitlab\.pravo\.tech\/[^/]+\/([^/]+)/;
             const match = window.location.href.match(regex);
             if (match && match[1]) {
                 return match[1];
@@ -77,16 +75,10 @@ const cs = {
     }
 }
 
-function getPullNumberFromURL() {
-    return parseInt(window.location.href.match(/\/(\d+)(#|$)/)[1], 10);
-}
-
-function isCleanUrl() {
-    const regex = /^\/[^\/]+\/[^\/]+\/pull\/\d+\/?$/;
-    const path = window.location.pathname;
-    const hostname = window.location.hostname;
-    const isCorrectHost = (hostname === 'github.com' && regex.test(path));
-    return isCorrectHost;
+function getPullNumber() {
+    const bodyElement = document.querySelector('body');
+    const pageTypeId = bodyElement.getAttribute('data-page-type-id');
+    return parseInt(pageTypeId);
 }
 
 function createSidebarItem() {
@@ -96,34 +88,33 @@ function createSidebarItem() {
     } else {
         sidebarItem = document.createElement("div");
         sidebarItem.setAttribute("id", "root-build-tc-menu");
-        sidebarItem.classList.add("discussion-sidebar-item", "js-discussion-sidebar-item");
+        sidebarItem.classList.add("block", "build-tc");
     }
     return sidebarItem;
 }
 
 function createDetailsElement() {
-    const detailsElement = document.createElement("details");
-    detailsElement.classList.add("details-reset");
+    const detailsElement = document.createElement("div");
+    detailsElement.classList.add("gl-align-items-center", "gl-display-flex", "gl-font-weight-bold", "gl-line-height-20", "gl-text-gray-900");
     detailsElement.setAttribute("id", "labels-select-menu");
     return detailsElement;
 }
 
 function createSummaryElement() {
-    const summaryElement = document.createElement("summary");
-    summaryElement.classList.add("discussion-sidebar-heading", "text-bold");
-    summaryElement.setAttribute("aria-haspopup", "menu");
-    summaryElement.textContent = "Build in TeamCity";
-    return summaryElement;
+    const element = document.createElement("span");
+    element.textContent = "Build in TeamCity";
+    return element;
 }
 
 function appendErrorElement(labelsElement, id, errorText, actionText, className) {
     if (!document.getElementById(id)) {
         const label = document.createElement("p");
+        label.classList.add("mt-2");
         label.innerHTML = `
             <span class="d-flex min-width-0 flex-1 js-hovercard-left" id="${id}">
               <div class="${className} assignee text-center" style="width: 100%;">
               <div>${errorText}</div>
-                <div class="v-align-middle">${actionText}</div>
+                <div class="vertical-align-sub">${actionText}</div>
               </div>
             </span>`;
         labelsElement.appendChild(label);
@@ -136,10 +127,9 @@ function createLoaderElement() {
     loaderElement.classList.add("text-center");
     const loaderHTML = `
     <div class="text-center">
-      <svg style="box-sizing: content-box; color: var(--color-icon-primary);" width="32" height="32" viewBox="0 0 16 16" fill="none" data-view-component="true" class="m-3 anim-rotate">
-        <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-opacity="0.25" stroke-width="2" vector-effect="non-scaling-stroke"></circle>
-        <path d="M15 8a7.002 7.002 0 00-7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" vector-effect="non-scaling-stroke"></path>
-      </svg>
+        <span aria-label="Loading" role="status" class="gl-spinner-container align-bottom">
+            <span class="gl-spinner gl-spinner-lg gl-vertical-align-text-bottom! mt-2"></span>
+        </span>
     </div>
   `;
     loaderElement.innerHTML = loaderHTML;
@@ -166,7 +156,7 @@ async function fetchBuilds(builds, pull) {
 }
 
 function createLabelsElement(builds) {
-    const pull = getPullNumberFromURL();
+    const pull = getPullNumber();
     const labelsElement = document.createElement("div");
     labelsElement.classList.add("flex-wrap");
     labelsElement.classList.add("sidebar-assignee");
@@ -210,7 +200,7 @@ function createLabelsElement(builds) {
                         labelsElement.removeChild(loaderElement);
                         for (const { response, Name, BuildType, Group } of responses) {
                             if (response.response === null || !response.response.isAuthorized) {
-                                appendErrorElement(labelsElement, 'isRequestError', 'Failed to connect to the server', "Please verify connection settings in 'Options' page.", 'color-fg-danger');
+                                appendErrorElement(labelsElement, 'isRequestError', 'Failed to connect to the server', "Please verify connection settings in 'Options' page.", 'text-danger');
                                 return;
                             }
                             if (Group != currentGroup) {
@@ -230,24 +220,24 @@ function createLabelsElement(builds) {
                             if (buildResult === cs.resultStatus.SUCCESS) {
                                 details = createBuildDetailsElement(
                                     `Last build: ${formatDate(response.response.data.build[0].finishOnAgentDate)}`,
-                                    createSvgElement("M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z", "octicon-check color-fg-success")
+                                    createSvgElement("M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z", "text-success")
                                 );
                             } else if (buildResult === cs.resultStatus.FAILURE) {
                                 const buildText = response.response.data.build[0].finishOnAgentDate
                                     ? `Last build: ${formatDate(response.response.data.build[0].finishOnAgentDate)}`
                                     : `Build in progress`;
                                 details = createBuildDetailsElement(buildText,
-                                    createSvgElement("M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.749.749 0 0 1 1.275.326.749.749 0 0 1-.215.734L9.06 8l3.22 3.22a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L8 9.06l-3.22 3.22a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z", "octicon-x color-fg-danger")
+                                    createSvgElement("M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.749.749 0 0 1 1.275.326.749.749 0 0 1-.215.734L9.06 8l3.22 3.22a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L8 9.06l-3.22 3.22a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z", "text-danger")
                                 );
                             } else if (buildResult === cs.resultStatus.RUNNING) {
                                 details = createBuildDetailsElement(
                                     "Build in progress",
-                                    createSvgElement("M8 4a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z", "octicon-x hx_dot-fill-pending-icon")
+                                    createSvgElement("M8 4a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z", "text-warning")
                                 );
                             } else if (buildResult === cs.resultStatus.QUEUED) {
                                 details = createBuildDetailsElement(
                                     "Build in queue",
-                                    createSvgElement("M13 3.07v-2H3v2A5 5 0 0 0 7.65 8 5 5 0 0 0 3 13v2h10v-2a5 5 0 0 0-4.65-5A5 5 0 0 0 13 3.07zm-8.6-.6h7.2v.6a3.67 3.67 0 0 1-.14.93H4.54a3.67 3.67 0 0 1-.14-.93zM11.6 13v.6H4.4V13a3.6 3.6 0 0 1 7.2 0z", "octicon-x")
+                                    createSvgElement("M13 3.07v-2H3v2A5 5 0 0 0 7.65 8 5 5 0 0 0 3 13v2h10v-2a5 5 0 0 0-4.65-5A5 5 0 0 0 13 3.07zm-8.6-.6h7.2v.6a3.67 3.67 0 0 1-.14.93H4.54a3.67 3.67 0 0 1-.14-.93zM11.6 13v.6H4.4V13a3.6 3.6 0 0 1 7.2 0z", "")
                                 );
                             } else {
                                 details = createBuildDetailsElement("Build not initiated yet");
@@ -261,12 +251,14 @@ function createLabelsElement(builds) {
                             const label = document.createElement("div");
                             label.classList.add("Link--primary");
                             label.classList.add("v-align-middle");
-                            label.innerHTML = `<a class="Link--primary assignee" href="${response.response.data.count === 0 ? defaultHref : response.response.data.build[0].webUrl}" target="_blank">${Name}</a>`;
+                            label.innerHTML = `<a class="" href="${response.response.data.count === 0 ? defaultHref : response.response.data.build[0].webUrl}" target="_blank">${Name}</a>`;
                             item.appendChild(label);
 
                             const configurations = document.createElement("div");
-                            configurations.classList.add("d-flex");
-                            configurations.classList.add("flex-lg-justify-between");
+                            configurations.classList.add("gl-display-flex");
+                            configurations.classList.add("gl-align-items-center");
+                            configurations.classList.add("gl-line-height-20");
+                            configurations.classList.add("gl-text-gray-900");
                             configurations.innerHTML = `${details}`;
                             item.appendChild(configurations);
 
@@ -282,7 +274,7 @@ function createLabelsElement(builds) {
             }
             else {
                 labelsElement.removeChild(loaderElement);
-                appendErrorElement(labelsElement, 'isRequestError', 'Failed to connect to the server', "Please verify connection settings in 'Options' page.", 'color-fg-danger');
+                appendErrorElement(labelsElement, 'isRequestError', 'Failed to connect to the server', "Please verify connection settings in 'Options' page.", 'text-danger');
             }
         });
     return labelsElement;
@@ -319,24 +311,20 @@ function createGroupTitle(title) {
 
 function createSvgElement(path, extraClasses) {
     return `
-      <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon ${extraClasses}">
+      <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="vertical-align-sub ${extraClasses}">
         <path d="${path}"></path>
       </svg>`;
 }
 
 function createBuildDetailsElement(text, svgElement = '') {
     return `
-    <div class="color-fg-muted reason text-small text-normal v-align-middle">
+    <div class="gl-text-gray-500 text-1">
         ${text}
         ${svgElement}
     </div>
-    <div class="position-relative">
-    <button class="Button Button--link">
-        <span class="Button-content">
-            <span class="Button-label">Run Build</span>
-        </span>
-    </button>
-</div>`;
+    <button class="Button Button--link btn gl-ml-auto btn-default btn-sm gl-button">
+        <span class="Button-label gl-button-text text-1">Run</span>
+    </button>`;
 }
 
 function addBuildInTeamCityMenu() {
@@ -344,17 +332,24 @@ function addBuildInTeamCityMenu() {
     if (!buildSetting) {
         return;
     }
-    const projectsMenu = document.getElementById('projects-select-menu');
-    const parent = projectsMenu.closest('.discussion-sidebar-item.js-discussion-sidebar-item');
-    const sidebarItem = createSidebarItem();
-    const detailsElement = createDetailsElement();
-    const summaryElement = createSummaryElement();
-    const labelsElement = createLabelsElement(buildSetting);
 
-    detailsElement.appendChild(summaryElement);
-    sidebarItem.appendChild(detailsElement);
-    sidebarItem.appendChild(labelsElement);
-    parent.parentNode.insertBefore(sidebarItem, parent);
+    const tryToAddMenu = setInterval(() => {
+        const projectsMenu = document.getElementById('milestone-edit');
+        if (projectsMenu) {
+            clearInterval(tryToAddMenu);
+
+            const parent = projectsMenu.closest('.milestone');
+            const sidebarItem = createSidebarItem();
+            const detailsElement = createDetailsElement();
+            const summaryElement = createSummaryElement();
+            const labelsElement = createLabelsElement(buildSetting);
+
+            detailsElement.appendChild(summaryElement);
+            sidebarItem.appendChild(detailsElement);
+            sidebarItem.appendChild(labelsElement);
+            parent.parentNode.insertBefore(sidebarItem, parent);
+        }
+    }, 500);
 }
 
 function handleBuildButtonClick(event, { BuildType, pull }) {
@@ -362,14 +357,14 @@ function handleBuildButtonClick(event, { BuildType, pull }) {
     const button = event.target.closest('.Button--link');
     if (!button) return;
     button.disabled = true;
-    button.querySelector('.Button-label').textContent = 'Build started';
+    button.querySelector('.Button-label').textContent = 'Started';
     chrome.runtime.sendMessage({
         command: cs.command.RUN_BUILD,
         buildType: BuildType,
         pull: pull
     }, function (response) {
         if (response.state === "queued") {
-            button.querySelector('.Button-label').textContent = 'Build in queue';
+            button.querySelector('.Button-label').textContent = 'In queue';
         }
     });
 }
