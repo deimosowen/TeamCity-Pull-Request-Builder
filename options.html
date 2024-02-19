@@ -92,6 +92,8 @@
                     </li>
                     <li><code>Order</code>: (Optional) The sequential number to determine the display order of the build
                         configurations within a group.</li>
+                    <li><code>BranchPrefix</code>: (Optional) A prefix for the branch name used in build configurations.
+                        Default value: "requests".</li>
                 </ul>
                 <div class="content">
                     <figure class="highlight">
@@ -107,12 +109,14 @@ Repository (Required)
     │   ├── Name (Required)
     │   ├── Group (Optional)
     │   └── Order (Optional)
+    │   └── BranchPrefix (Optional)
     │
     ├── [1]
     │   ├── BuildType (Required)
     │   ├── Name (Required)
     │   ├── Group (Optional)
     │   └── Order (Optional)
+    │   └── BranchPrefix (Optional)
     │
     ├── [2]...           
                             </code>
