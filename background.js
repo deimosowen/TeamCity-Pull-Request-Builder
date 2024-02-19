@@ -70,6 +70,22 @@ const options = {
     reloadConfig: async () => {
         await API.logout();
         await options.loadConfig();
+    },
+    findBranchPrefix: (buildType) => {
+        console.log(buildType);
+
+        const data = options.config;
+        const defaultValue = 'requests';
+        for (const repoName in data.Repository) {
+            const builds = data.Repository[repoName];
+            console.log(builds);
+            for (const build of builds) {
+                if (build.BuildType === buildType) {
+                    return build.BranchPrefix || defaultValue;
+                }
+            }
+        }
+        return defaultValue;
     }
 };
 
@@ -99,7 +115,8 @@ const API = {
         if (buildQueue !== null && buildQueue.data !== null && buildQueue.data.count !== 0) {
             return buildQueue;
         }
-        const url = `${options.config.BaseUrl}app/rest/builds?locator=buildType:${request.buildType},branch:${request.branchPrefix}/${request.pull},count:1,running:any`;
+        const branchPrefix = options.findBranchPrefix(request.buildType);
+        const url = `${options.config.BaseUrl}app/rest/builds?locator=buildType:${request.buildType},branch:${branchPrefix}/${request.pull},count:1,running:any`;
         const response = await fetch(url, {
             headers: {
                 'Authorization': API.getCredentials(),
@@ -143,9 +160,10 @@ const API = {
         }
         let data = null;
         const contentType = response.headers.get("content-type");
+        const branchPrefix = options.findBranchPrefix(request.buildType);
         if (contentType && contentType.indexOf("application/json") !== -1) {
             data = await response.json();
-            data.build = data.build.filter(item => item.branchName === `${request.branchPrefix}/${request.pull}`);
+            data.build = data.build.filter(item => item.branchName === `${branchPrefix}/${request.pull}`);
             data.count = data.build.length;
         } else {
             data = await response.text();
@@ -157,9 +175,10 @@ const API = {
     },
     runBuildQueue: async (request) => {
         const CSRFToken = await API.getAuthenticationTestResult();
+        const branchPrefix = options.findBranchPrefix(request.buildType);
         const url = `${options.config.BaseUrl}app/rest/buildQueue`;
         const body = JSON.stringify({
-            branchName: `${request.branchPrefix}/${request.pull}`,
+            branchName: `${branchPrefix}/${request.pull}`,
             buildType: {
                 id: request.buildType
             }
