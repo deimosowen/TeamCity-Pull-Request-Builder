@@ -143,6 +143,7 @@ async function fetchBuilds(builds, pull) {
                 const response = await chrome.runtime.sendMessagePromise({
                     command: cs.command.GET_BUILD,
                     buildType: data.BuildType,
+                    branch: data.BranchPrefix || "requests",
                     pull: pull
                 });
                 resolve({ ...data, response });
@@ -361,6 +362,7 @@ function handleBuildButtonClick(event, { BuildType, pull }) {
     chrome.runtime.sendMessage({
         command: cs.command.RUN_BUILD,
         buildType: BuildType,
+        branch: data.BranchPrefix || "requests",
         pull: pull
     }, function (response) {
         if (response.state === "queued") {

@@ -99,8 +99,7 @@ const API = {
         if (buildQueue !== null && buildQueue.data !== null && buildQueue.data.count !== 0) {
             return buildQueue;
         }
-        const url = `${options.config.BaseUrl}app/rest/builds?locator=buildType:${request.buildType},branch:requests/${request.pull},count:1,running:any`;
-        console.log(url);
+        const url = `${options.config.BaseUrl}app/rest/builds?locator=buildType:${request.buildType},branch:${request.branchPrefix}/${request.pull},count:1,running:any`;
         const response = await fetch(url, {
             headers: {
                 'Authorization': API.getCredentials(),
@@ -146,7 +145,7 @@ const API = {
         const contentType = response.headers.get("content-type");
         if (contentType && contentType.indexOf("application/json") !== -1) {
             data = await response.json();
-            data.build = data.build.filter(item => item.branchName === `requests/${request.pull}`);
+            data.build = data.build.filter(item => item.branchName === `${request.branchPrefix}/${request.pull}`);
             data.count = data.build.length;
         } else {
             data = await response.text();
@@ -160,7 +159,7 @@ const API = {
         const CSRFToken = await API.getAuthenticationTestResult();
         const url = `${options.config.BaseUrl}app/rest/buildQueue`;
         const body = JSON.stringify({
-            branchName: `requests/${request.pull}`,
+            branchName: `${request.branchPrefix}/${request.pull}`,
             buildType: {
                 id: request.buildType
             }

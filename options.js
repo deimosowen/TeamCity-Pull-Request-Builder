@@ -52,7 +52,7 @@ const options = {
             const currentConfig = await options.getConfig();
             const jsonText = options.elements.optionsJson.value;
             const newConfig = JSON.parse(jsonText);
-            newConfig.Password = PasswordMasker.unmask(newConfig.Password, currentConfig.Password);
+            newConfig.Password = PasswordMasker.unmask(newConfig.Password, currentConfig?.Password);
             if (newConfig.BaseUrl && !newConfig.BaseUrl.endsWith("/")) {
                 newConfig.BaseUrl += "/";
             }
@@ -64,8 +64,8 @@ const options = {
         }
 
         function checkCredentialsChanged(currentSettings, newSettings) {
-            return currentSettings.Username !== newSettings.Username ||
-                currentSettings.Password !== newSettings.Password;
+            return currentSettings?.Username !== newSettings.Username ||
+                currentSettings?.Password !== newSettings.Password;
         }
     },
     setDefaultConfig: async () => {
@@ -179,7 +179,7 @@ const PasswordMasker = {
         return this.mask;
     },
 
-    unmask: function (current, original) {
+    unmask: function (current, original = "") {
         return this.isMasked(current) ? original : current;
     }
 };
