@@ -198,7 +198,7 @@ function createLabelsElement(builds) {
                         let groupElement = null;
 
                         labelsElement.removeChild(loaderElement);
-                        for (const { response, Name, BuildType, Group } of responses) {
+                        for (const { response, Name, BuildType, Group, Depends } of responses) {
                             if (response.response === null || !response.response.isAuthorized) {
                                 appendErrorElement(labelsElement, 'isRequestError', 'Failed to connect to the server', "Please verify connection settings in 'Options' page.", 'text-danger');
                                 return;
@@ -215,24 +215,40 @@ function createLabelsElement(builds) {
                             } else {
                                 groupElement = labelsElement;
                             }
+                            let buildIsActual = true;
+                            if (Depends) {
+                                const dependsBuild = responses.find(x => x.BuildType === Depends);
+                                if (dependsBuild) {
+                                    const dependsVersion = extractVersionNumber(dependsBuild.response.response.data.build[0].number);
+                                    const responseVersion = extractVersionNumber(response.response.data.build[0].number);
+
+                                    if (!dependsVersion || !responseVersion || dependsVersion !== responseVersion) {
+                                        buildIsActual = false;
+                                    }
+                                }
+                            }
+
                             const buildResult = checkStatus(response.response.data);
                             let details = "";
                             if (buildResult === cs.resultStatus.SUCCESS) {
                                 details = createBuildDetailsElement(
                                     `Last build: ${formatDate(response.response.data.build[0].finishOnAgentDate)}`,
-                                    createSvgElement("M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z", "text-success")
+                                    createSvgElement("M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z", "text-success"),
+                                    buildIsActual
                                 );
                             } else if (buildResult === cs.resultStatus.FAILURE) {
                                 const buildText = response.response.data.build[0].finishOnAgentDate
                                     ? `Last build: ${formatDate(response.response.data.build[0].finishOnAgentDate)}`
                                     : `Build in progress`;
                                 details = createBuildDetailsElement(buildText,
-                                    createSvgElement("M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.749.749 0 0 1 1.275.326.749.749 0 0 1-.215.734L9.06 8l3.22 3.22a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L8 9.06l-3.22 3.22a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z", "text-danger")
+                                    createSvgElement("M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.749.749 0 0 1 1.275.326.749.749 0 0 1-.215.734L9.06 8l3.22 3.22a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L8 9.06l-3.22 3.22a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z", "text-danger"),
+                                    buildIsActual
                                 );
                             } else if (buildResult === cs.resultStatus.RUNNING) {
                                 details = createBuildDetailsElement(
                                     "Build in progress",
-                                    createSvgElement("M8 4a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z", "text-warning")
+                                    createSvgElement("M8 4a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z", "text-warning"),
+                                    buildIsActual
                                 );
                             } else if (buildResult === cs.resultStatus.QUEUED) {
                                 details = createBuildDetailsElement(
@@ -316,11 +332,20 @@ function createSvgElement(path, extraClasses) {
       </svg>`;
 }
 
-function createBuildDetailsElement(text, svgElement = '') {
+function createBuildDetailsElement(text, svgElement = '', buildIsActual = true) {
+    const buildIsActualText = buildIsActual ? '' :
+        `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
+        <title>Build is outdated</title>
+        <polygon points="12,1 1,23 23,23" fill="none" stroke="#ab6100"/>
+        <line x1="12" y1="6" x2="12" y2="15" stroke="#ab6100" stroke-width="1.5"/>
+        <circle cx="12" cy="18" r="1" fill="#ab6100" />
+      </svg>`;
+
     return `
     <div class="gl-text-gray-500 text-1">
         ${text}
         ${svgElement}
+        ${buildIsActualText}
     </div>
     <button class="Button Button--link btn gl-ml-auto btn-default btn-sm gl-button">
         <span class="Button-label gl-button-text text-1">Run</span>
@@ -421,6 +446,14 @@ function checkStatus(response) {
         default:
             throw new Error(`Unknown status: ${status} or state: ${state}`);
     }
+}
+
+function extractVersionNumber(string) {
+    if (!string) {
+        return null;
+    }
+    const match = string.match(/(\d+\.\d+\.\d+)/);
+    return match ? match[0] : null;
 }
 
 chrome.runtime.sendMessagePromise = function (message) {

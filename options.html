@@ -94,6 +94,9 @@
                         configurations within a group.</li>
                     <li><code>BranchPrefix</code>: (Optional) A prefix for the branch name used in build configurations.
                         Default value: "requests".</li>
+                    <li><code>Depends</code>: (Optional) An optional identifier of another build type that this
+                        configuration depends on. If specified, this build configuration is considered outdated or not
+                        actual if the build it depends on has a different version.</li>
                 </ul>
                 <div class="content">
                     <figure class="highlight">
@@ -110,6 +113,7 @@ Repository (Required)
     │   ├── Group (Optional)
     │   └── Order (Optional)
     │   └── BranchPrefix (Optional)
+    │   └── Depends (Optional)
     │
     ├── [1]
     │   ├── BuildType (Required)
@@ -117,6 +121,7 @@ Repository (Required)
     │   ├── Group (Optional)
     │   └── Order (Optional)
     │   └── BranchPrefix (Optional)
+    │   └── Depends (Optional)
     │
     ├── [2]...           
                             </code>

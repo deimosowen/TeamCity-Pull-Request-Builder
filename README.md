@@ -26,13 +26,15 @@ Example settings:
                 "BuildType": "Tests_0",
                 "Name": "Tests 0",
                 "Group": "Tests",
-                "Order": 1
+                "Order": 1,
+                "Depends": "Build_Type"
             },
             {
                 "BuildType": "Tests_1",
                 "Name": "Tests 1",
                 "Group": "Tests",
-                "Order": 2
+                "Order": 2,
+                "Depends": "Build_Type"
             }
         ]
     }
@@ -50,6 +52,7 @@ Each build configuration object contains the following properties:
 - `Name`: The name that will be displayed in the plugin interface.
 - `Group`: The group to which this build configuration belongs. If specified, the build configurations will be grouped under this name in the plugin interface.
 - `Order`: The sequential number to determine the display order of the build configurations within a group.
+- `Depends`: An optional identifier of another build type that this configuration depends on. If specified, this build configuration is considered outdated or not actual if the build it depends on has a different version.
 
 ## Usage
 After configuring the plugin, builds for pull requests will automatically be triggered according to your configuration.

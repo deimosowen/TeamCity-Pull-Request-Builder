@@ -72,13 +72,10 @@ const options = {
         await options.loadConfig();
     },
     findBranchPrefix: (buildType) => {
-        console.log(buildType);
-
         const data = options.config;
         const defaultValue = 'requests';
         for (const repoName in data.Repository) {
             const builds = data.Repository[repoName];
-            console.log(builds);
             for (const build of builds) {
                 if (build.BuildType === buildType) {
                     return build.BranchPrefix || defaultValue;
