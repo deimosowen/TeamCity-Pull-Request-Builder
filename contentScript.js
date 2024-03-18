@@ -219,11 +219,15 @@ function createLabelsElement(builds) {
                             if (Depends) {
                                 const dependsBuild = responses.find(x => x.BuildType === Depends);
                                 if (dependsBuild) {
-                                    const dependsVersion = extractVersionNumber(dependsBuild.response.response.data.build[0].number);
-                                    const responseVersion = extractVersionNumber(response.response.data.build[0].number);
+                                    const dependsBuildNumber = dependsBuild.response.response.data.build[0]?.number;
+                                    const responseBuildNumber = response.response.data.build[0]?.number;
+                                    if (dependsBuildNumber && responseBuildNumber) {
+                                        const dependsVersion = extractVersionNumber(dependsBuildNumber);
+                                        const responseVersion = extractVersionNumber(responseBuildNumber);
 
-                                    if (!dependsVersion || !responseVersion || dependsVersion !== responseVersion) {
-                                        buildIsActual = false;
+                                        if (!dependsVersion || !responseVersion || dependsVersion !== responseVersion) {
+                                            buildIsActual = false;
+                                        }
                                     }
                                 }
                             }
