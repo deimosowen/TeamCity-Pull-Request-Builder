@@ -373,12 +373,20 @@ function addBuildInTeamCityMenu() {
             const summaryElement = createSummaryElement();
             const labelsElement = createLabelsElement(buildSetting);
 
+            addScrollToForm(parent);
+
             detailsElement.appendChild(summaryElement);
             sidebarItem.appendChild(detailsElement);
             sidebarItem.appendChild(labelsElement);
             parent.parentNode.insertBefore(sidebarItem, parent);
         }
     }, 500);
+}
+
+function addScrollToForm(element) {
+    const form = element.closest('form.issuable-context-form');
+    form.style.overflowY = 'auto';
+    form.style.paddingLeft = '0px';
 }
 
 function handleBuildButtonClick(event, { BuildType, pull }) {
