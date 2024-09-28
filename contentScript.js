@@ -95,7 +95,7 @@ function createSidebarItem() {
 
 function createDetailsElement() {
     const detailsElement = document.createElement("div");
-    detailsElement.classList.add("gl-align-items-center", "gl-display-flex", "gl-font-weight-bold", "gl-line-height-20", "gl-text-gray-900");
+    detailsElement.classList.add("gl--flex-full", "gl-align-items-center", "gl-display-flex", "gl-font-weight-bold", "gl-line-height-20", "gl-text-gray-900");
     detailsElement.setAttribute("id", "labels-select-menu");
     return detailsElement;
 }
@@ -128,7 +128,7 @@ function createLoaderElement() {
     const loaderHTML = `
     <div class="text-center">
         <span aria-label="Loading" role="status" class="gl-spinner-container align-bottom">
-            <span class="gl-spinner gl-spinner-lg gl-vertical-align-text-bottom! mt-2"></span>
+            <span class="gl-spinner gl-spinner-lg !gl-vertical-align-text-bottom gl-spinner-dark mt-2"></span>
         </span>
     </div>
   `;
@@ -275,6 +275,7 @@ function createLabelsElement(builds) {
                             item.appendChild(label);
 
                             const configurations = document.createElement("div");
+                            configurations.classList.add("gl--flex-full");
                             configurations.classList.add("gl-display-flex");
                             configurations.classList.add("gl-align-items-center");
                             configurations.classList.add("gl-line-height-20");
@@ -407,36 +408,41 @@ function handleBuildButtonClick(event, { BuildType, pull }) {
 }
 
 function formatDate(inputDate) {
-    const year = inputDate.slice(0, 4);
-    const month = inputDate.slice(4, 6);
-    const day = inputDate.slice(6, 8);
-    const hours = inputDate.slice(9, 11);
-    const minutes = inputDate.slice(11, 13);
-    const seconds = inputDate.slice(13, 15);
+    try {
+        const year = inputDate.slice(0, 4);
+        const month = inputDate.slice(4, 6);
+        const day = inputDate.slice(6, 8);
+        const hours = inputDate.slice(9, 11);
+        const minutes = inputDate.slice(11, 13);
+        const seconds = inputDate.slice(13, 15);
 
-    if (day < 1 || day > 31) {
-        throw new Error('Invalid day value');
+        if (day < 1 || day > 31) {
+            throw new Error('Invalid day value');
+        }
+
+        if (hours < 0 || hours > 23) {
+            throw new Error('Invalid hours value');
+        }
+
+        if (minutes < 0 || minutes > 59) {
+            throw new Error('Invalid minutes value');
+        }
+
+        if (seconds < 0 || seconds > 59) {
+            throw new Error('Invalid seconds value');
+        }
+        const date = new Date(year, month - 1, day, hours, minutes, seconds);
+
+        const dayFormatted = date.getDate().toString().padStart(2, '0');
+        const monthFormatted = new Intl.DateTimeFormat('en-US', { month: 'short' }).format(date);
+        const yearFormatted = date.getFullYear().toString().slice(2);
+        const hoursFormatted = date.getHours().toString().padStart(2, '0');
+        const minutesFormatted = date.getMinutes().toString().padStart(2, '0');
+        return `${dayFormatted} ${monthFormatted} ${yearFormatted} ${hoursFormatted}:${minutesFormatted}`;
+    } catch (error) {
+        console.error(error);
+        return inputDate;
     }
-
-    if (hours < 0 || hours > 23) {
-        throw new Error('Invalid hours value');
-    }
-
-    if (minutes < 0 || minutes > 59) {
-        throw new Error('Invalid minutes value');
-    }
-
-    if (seconds < 0 || seconds > 59) {
-        throw new Error('Invalid seconds value');
-    }
-
-    const date = new Date(Date.UTC(year, month - 1, day, hours, minutes, seconds));
-    const dayFormatted = date.getDate().toString().padStart(2, '0');
-    const monthFormatted = new Intl.DateTimeFormat('en-US', { month: 'short' }).format(date);
-    const yearFormatted = date.getFullYear().toString().slice(2);
-    const hoursFormatted = date.getHours().toString().padStart(2, '0');
-    const minutesFormatted = date.getMinutes().toString().padStart(2, '0');
-    return `${dayFormatted} ${monthFormatted} ${yearFormatted} ${hoursFormatted}:${minutesFormatted}`;
 }
 
 function checkStatus(response) {
