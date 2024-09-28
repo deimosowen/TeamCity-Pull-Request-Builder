@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "TeamCity Pull Request Builder",
-    "version": "2.2.2",
+    "version": "2.2.3",
     "description": "With a plugin, you can automatically trigger builds of your project that are associated with a specific pull-request.",
     "host_permissions": [
         "*://*.ci.pravo.tech/"
