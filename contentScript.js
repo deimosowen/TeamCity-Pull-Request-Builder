@@ -33,6 +33,7 @@ const cs = {
         RUNNING: "RUNNING",
         FAILURE: "FAILURE",
         QUEUED: "QUEUED",
+        NOTBUILDS: "NOTBUILDS",
     },
     command: {
         GET_BUILD: 'getBuild',
