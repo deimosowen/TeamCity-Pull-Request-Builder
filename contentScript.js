@@ -54,6 +54,7 @@ const cs = {
     },
     render: async () => {
         addBuildInTeamCityMenu();
+        addHeadingBorderInMergeRequestDescription();
     },
     getRepoBuildSetting: () => {
         function getRepoName() {
@@ -382,6 +383,20 @@ function addBuildInTeamCityMenu() {
             parent.parentNode.insertBefore(sidebarItem, parent);
         }
     }, 500);
+}
+
+function addHeadingBorderInMergeRequestDescription() {
+    if (options.config.HeadingBorder === true) {
+        const descriptionElement = document.querySelector('.merge-request-overview .detail-page-description .description.js-task-list-container');
+        if (descriptionElement) {
+            const headings = descriptionElement.querySelectorAll('h1, h2, h3, h4, h5, h6');
+            headings.forEach(heading => {
+                heading.style.borderBottom = '1px solid rgb(216, 222, 228)';
+                heading.style.paddingBottom = '.3em';
+                heading.style.fontSize = '1.5em';
+            });
+        }
+    }
 }
 
 function addScrollToForm(element) {
