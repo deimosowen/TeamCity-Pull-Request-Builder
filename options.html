@@ -97,6 +97,14 @@
                     <li><code>Depends</code>: (Optional) An optional identifier of another build type that this
                         configuration depends on. If specified, this build configuration is considered outdated or not
                         actual if the build it depends on has a different version.</li>
+                    <li>
+                        <code>HeadingBorder</code>: (Optional) Boolean value.
+                        If set to <code>true</code>, all headings (<code>h1</code>–<code>h6</code>) in the Merge Request
+                        description
+                        will be styled with a bottom border, padding, and increased font size for better readability.
+                        Default value: <code>false</code>.
+                    </li>
+
                 </ul>
                 <div class="content">
                     <figure class="highlight">
@@ -124,6 +132,9 @@ Repository (Required)
     │   └── Depends (Optional)
     │
     ├── [2]...           
+    │
+    └── HeadingBorder (Optional)
+        └── true / false
                             </code>
                         </pre>
                     </figure>
