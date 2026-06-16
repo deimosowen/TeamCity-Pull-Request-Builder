@@ -1,27 +1,36 @@
 <!DOCTYPE html>
-<html class="is-size-7">
+<html>
 
 <head>
     <title>TeamCity Builder</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" />
     <link rel="stylesheet" href="style.css" />
-    <link rel="stylesheet" href="bulma.min.css" />
 </head>
 
 <body>
-    <div class="card">
-        <div class="card-content">
-            <p class="title is-4">TeamCity Pull Request Builder</p>
-            <p class="subtitle pt-4">
-                <button class="button is-outlined" id="settings-btn">Options</button>
-            </p>
+    <main class="popup-shell">
+        <div class="popup-header">
+            <img src="assets/icons/icon24.png" alt="" class="popup-icon">
+            <div>
+                <h1>TeamCity Builder</h1>
+                <p id="version-label"></p>
+            </div>
         </div>
-        <footer class="card-footer">
-            <p class="card-footer-item is-justify-content-space-between px-2" id="summary"></p>
+
+        <button class="primary-action" id="settings-btn" type="button">
+            <span>Open options</span>
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M8 2.75a.75.75 0 0 1 .75.75v1.08a4.02 4.02 0 0 1 1.02.43l.76-.76a.75.75 0 1 1 1.06 1.06l-.76.76c.19.32.33.66.43 1.02h1.08a.75.75 0 0 1 0 1.5h-1.08a4.02 4.02 0 0 1-.43 1.02l.76.76a.75.75 0 1 1-1.06 1.06l-.76-.76c-.32.19-.66.33-1.02.43v1.08a.75.75 0 0 1-1.5 0v-1.08a4.02 4.02 0 0 1-1.02-.43l-.76.76a.75.75 0 1 1-1.06-1.06l.76-.76a4.02 4.02 0 0 1-.43-1.02H3.66a.75.75 0 0 1 0-1.5h1.08c.1-.36.24-.7.43-1.02l-.76-.76A.75.75 0 1 1 5.47 4.25l.76.76c.32-.19.66-.33 1.02-.43V3.5A.75.75 0 0 1 8 2.75ZM8 6a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z"></path>
+            </svg>
+        </button>
+
+        <footer class="popup-footer">
+            <a id="github-link" href="https://github.com/deimosowen/TeamCity-Pull-Request-Builder" target="_blank"
+                rel="noopener noreferrer">GitHub</a>
+            <a id="release-link" target="_blank" rel="noopener noreferrer">Release notes</a>
         </footer>
-    </div>
+    </main>
     <script src="popup.js"></script>
 </body>
 

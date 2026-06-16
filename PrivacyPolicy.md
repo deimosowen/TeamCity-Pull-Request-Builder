@@ -2,19 +2,23 @@
 
 ## 1. Collection and use of information
 
-We may collect and use the following information when you use our Chrome extension:
+The extension does not collect analytics, usage telemetry, session duration, or browser/device information.
 
-- Information about your browser and operating system, including browser version and device type;
-- Information about how you use our extension, including the time and date of use, session duration, and actions you perform within the extension;
+The extension stores configuration locally in Chrome extension storage:
 
-We use this information to improve our extension and optimize its performance for you.
+- TeamCity base URL;
+- TeamCity username;
+- TeamCity password or token;
+- repository and build configuration;
+- optional UI preferences.
+
+This information is used only to show and run TeamCity builds from supported pull request pages.
 
 ## 2. Sharing of information
 
-We do not sell, rent, or disclose your personal information to third parties, except in the following cases:
+We do not sell, rent, or disclose your information to third parties. The extension sends requests only to the configured TeamCity server and runs on the configured GitLab pages declared by the extension permissions.
 
-- If we obtain your permission to share information;
-- If we are required to provide information in accordance with the law or a request from law enforcement.
+Your TeamCity credentials are sent to your configured TeamCity server for authentication.
 
 ## 3. Security
 

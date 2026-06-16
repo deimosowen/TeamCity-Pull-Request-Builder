@@ -1,3 +1,7 @@
+import "./tc-utils.js";
+
+const utils = globalThis.TcPrbUtils;
+
 const global = {
     COMMAND: {
         GET_BUILD: 'getBuild',
@@ -10,41 +14,50 @@ const global = {
     },
     initListener: async () => {
         chrome.tabs.onUpdated.addListener((tabId, tab) => {
-            const repositories = Object.keys(options.config.Repository);
+            const repositories = Object.keys(options.config?.Repository || {});
+            if (repositories.length === 0) {
+                return;
+            }
             if (tab.url && checkUrlIncludesRepo(tab.url, repositories)) {
                 chrome.tabs.sendMessage(tabId, {
                     type: "OPEN_PULL"
-                });
+                }, () => void chrome.runtime.lastError);
             }
         });
 
         chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+            const reply = promise => {
+                promise
+                    .then(data => {
+                        sendResponse({ response: data });
+                    })
+                    .catch(error => {
+                        console.error(error);
+                        sendResponse({
+                            response: {
+                                isAuthorized: true,
+                                data: null,
+                                error: error.message || String(error)
+                            }
+                        });
+                    });
+            };
+
             if (message.command === global.COMMAND.GET_BUILD) {
-                API.getBuilds(message)
-                    .then(data => {
-                        sendResponse({ response: data });
-                    });
+                reply(API.getBuilds(message));
             } else if (message.command === global.COMMAND.RUN_BUILD) {
-                API.runBuildQueue(message)
-                    .then(data => {
-                        sendResponse({ response: data });
-                    });
+                reply(API.runBuildQueue(message));
             } else if (message.command === global.COMMAND.RELOAD_CONFIG) {
-                options.reloadConfig().then(data => {
-                    sendResponse({ response: data });
-                });
+                reply(options.reloadConfig());
+            } else {
+                sendResponse({ response: null });
             }
             return true;
         });
 
         function checkUrlIncludesRepo(url, repoList) {
-            for (const repo of repoList) {
-                const regex = new RegExp(`gitlab\\.pravo\\.tech\\/.*?\\/${repo}\\/-\\/merge_requests\\/`);
-                if (regex.test(url)) {
-                    return true;
-                }
-            }
-            return false;
+            const repoName = utils.getRepoNameFromGitLabUrl(url);
+            return repoList.includes(repoName);
         }
     }
 }
@@ -56,7 +69,7 @@ const options = {
     },
     getConfig: async () => {
         const { config } = await chrome.storage.local.get(["config"]);
-        return config;
+        return config || {};
     },
     loadConfig: async () => {
         try {
@@ -72,9 +85,9 @@ const options = {
         await options.loadConfig();
     },
     findBranchPrefix: (buildType) => {
-        const data = options.config;
+        const data = options.config || {};
         const defaultValue = 'requests';
-        for (const repoName in data.Repository) {
+        for (const repoName in data.Repository || {}) {
             const builds = data.Repository[repoName];
             for (const build of builds) {
                 if (build.BuildType === buildType) {
@@ -89,6 +102,13 @@ const options = {
 const API = {
     getCredentials: () => {
         return 'Basic ' + btoa(`${options.config.Username}:${options.config.Password}`);
+    },
+    parseResponseData: async (response) => {
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.indexOf("application/json") !== -1) {
+            return await response.json();
+        }
+        return await response.text();
     },
     isUnauthorized: (response) => {
         return response.status === 401 && response.ok == false;
@@ -113,7 +133,9 @@ const API = {
             return buildQueue;
         }
         const branchPrefix = options.findBranchPrefix(request.buildType);
-        const url = `${options.config.BaseUrl}app/rest/builds?locator=buildType:${request.buildType},branch:${branchPrefix}/${request.pull},count:1,running:any`;
+        const locator = `buildType:${request.buildType},branch:${branchPrefix}/${request.pull},count:1,running:any`;
+        const fields = "count,build(id,status,state,branchName,webUrl,number,startDate,finishDate,finishOnAgentDate,queuedDate,statusText)";
+        const url = `${options.config.BaseUrl}app/rest/builds?${new URLSearchParams({ locator, fields })}`;
         const response = await fetch(url, {
             headers: {
                 'Authorization': API.getCredentials(),
@@ -127,20 +149,16 @@ const API = {
                 data: null
             };
         }
-        let data = null;
-        const contentType = response.headers.get("content-type");
-        if (contentType && contentType.indexOf("application/json") !== -1) {
-            data = await response.json();
-        } else {
-            data = await response.text();
-        }
+        let data = await API.parseResponseData(response);
         return {
             isAuthorized: isAuthorized,
             data: isAuthorized ? data : null
         };
     },
     getBuildQueue: async (request) => {
-        const url = `${options.config.BaseUrl}app/rest/buildQueue?locator=buildType:(id:${request.buildType})`;
+        const locator = `buildType:(id:${request.buildType})`;
+        const fields = "count,build(id,status,state,branchName,webUrl,number,startDate,finishDate,finishOnAgentDate,queuedDate,statusText)";
+        const url = `${options.config.BaseUrl}app/rest/buildQueue?${new URLSearchParams({ locator, fields })}`;
         const response = await fetch(url, {
             headers: {
                 'Authorization': API.getCredentials(),
@@ -156,14 +174,11 @@ const API = {
             };
         }
         let data = null;
-        const contentType = response.headers.get("content-type");
         const branchPrefix = options.findBranchPrefix(request.buildType);
-        if (contentType && contentType.indexOf("application/json") !== -1) {
-            data = await response.json();
-            data.build = data.build.filter(item => item.branchName === `${branchPrefix}/${request.pull}`);
+        data = await API.parseResponseData(response);
+        if (typeof data === "object" && data !== null) {
+            data.build = utils.getBuilds(data).filter(item => item.branchName === `${branchPrefix}/${request.pull}`);
             data.count = data.build.length;
-        } else {
-            data = await response.text();
         }
         return {
             isAuthorized: isAuthorized,
@@ -193,9 +208,10 @@ const API = {
         if (!response.ok) {
             throw new Error(response.statusText);
         }
+        const data = !response.redirected ? await API.parseResponseData(response) : null;
         return {
             isAuthorized: !response.redirected,
-            data: !response.redirected ? await response.json() : null
+            data
         };
     },
     logout: async () => {
