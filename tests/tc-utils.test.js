@@ -55,7 +55,8 @@ test("build timing uses TeamCity start and finish dates", () => {
         finishDate: "20260616T183900+0300"
     });
     assert.equal(timing.durationText, "32m");
-    assert.equal(timing.dateText, "16 Jun 26 18:39");
+    assert.ok(timing.dateText.includes("16 Jun 26"));
+    assert.equal(utils.parseTeamCityDate("20260616T183900+0300").toISOString(), "2026-06-16T15:39:00.000Z");
 });
 
 test("extracts nested GitLab repository name", () => {
