@@ -98,6 +98,29 @@ jobs:
           (cd dist && zip -r "$ARCHIVE" "TeamCity-Pull-Request-Builder-${VERSION}")
           echo "ARCHIVE=dist/$ARCHIVE" >> "$GITHUB_ENV"
 
+      - name: Validate Chrome Web Store secrets
+        if: steps.release_exists.outputs.exists == 'false'
+        env:
+          CHROME_EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
+          CHROME_PUBLISHER_ID: ${{ secrets.CHROME_PUBLISHER_ID }}
+          CHROME_CLIENT_ID: ${{ secrets.CHROME_CLIENT_ID }}
+          CHROME_CLIENT_SECRET: ${{ secrets.CHROME_CLIENT_SECRET }}
+          CHROME_REFRESH_TOKEN: ${{ secrets.CHROME_REFRESH_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          missing=0
+          for name in CHROME_EXTENSION_ID CHROME_PUBLISHER_ID CHROME_CLIENT_ID CHROME_CLIENT_SECRET CHROME_REFRESH_TOKEN; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::$name GitHub Actions secret is missing or empty."
+              missing=1
+            fi
+          done
+
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
       - name: Get Chrome Web Store access token
         if: steps.release_exists.outputs.exists == 'false'
         env:
