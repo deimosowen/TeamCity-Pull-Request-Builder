@@ -155,7 +155,7 @@ jobs:
             "https://chromewebstore.googleapis.com/upload/v2/publishers/${CHROME_PUBLISHER_ID}/items/${CHROME_EXTENSION_ID}:upload")"
 
           echo "$UPLOAD_RESPONSE" > chrome-upload-response.json
-          node -e "const response = require('./chrome-upload-response.json'); if (response.uploadState && response.uploadState !== 'SUCCESS') { console.error(JSON.stringify(response, null, 2)); process.exit(1); } if (response.error) { console.error(JSON.stringify(response, null, 2)); process.exit(1); }"
+          node -e "const response = require('./chrome-upload-response.json'); const successStates = new Set(['SUCCESS', 'SUCCEEDED']); if (response.uploadState && !successStates.has(response.uploadState)) { console.error(JSON.stringify(response, null, 2)); process.exit(1); } if (response.error) { console.error(JSON.stringify(response, null, 2)); process.exit(1); }"
 
       - name: Publish package to Chrome Web Store
         if: steps.release_exists.outputs.exists == 'false'
