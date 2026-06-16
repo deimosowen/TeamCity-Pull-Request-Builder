@@ -1,0 +1,161 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run checks
+        run: npm test
+
+      - name: Read extension version
+        id: version
+        run: |
+          VERSION="$(node -p "require('./manifest.json').version")"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Validate package version
+        run: |
+          MANIFEST_VERSION="$(node -p "require('./manifest.json').version")"
+          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
+          if [ "$MANIFEST_VERSION" != "$PACKAGE_VERSION" ]; then
+            echo "manifest.json version ($MANIFEST_VERSION) does not match package.json version ($PACKAGE_VERSION)."
+            exit 1
+          fi
+
+      - name: Check existing release
+        id: release_exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Stop when version is already released
+        if: steps.release_exists.outputs.exists == 'true'
+        run: echo "Release ${{ steps.version.outputs.tag }} already exists. Nothing to publish."
+
+      - name: Build extension archive
+        if: steps.release_exists.outputs.exists == 'false'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          DIST_DIR="dist/TeamCity-Pull-Request-Builder-${VERSION}"
+          ARCHIVE="TeamCity-Pull-Request-Builder-${VERSION}.zip"
+
+          rm -rf dist
+          mkdir -p "$DIST_DIR"
+
+          cp -R assets "$DIST_DIR/assets"
+          cp \
+            background.js \
+            bulma.min.css \
+            content-style.css \
+            contentScript.js \
+            LICENSE \
+            manifest.json \
+            options-style.css \
+            options.html \
+            options.js \
+            package.json \
+            package-lock.json \
+            popup.html \
+            popup.js \
+            PrivacyPolicy.md \
+            README.md \
+            style.css \
+            tc-utils.js \
+            "$DIST_DIR/"
+
+          (cd dist && zip -r "$ARCHIVE" "TeamCity-Pull-Request-Builder-${VERSION}")
+          echo "ARCHIVE=dist/$ARCHIVE" >> "$GITHUB_ENV"
+
+      - name: Get Chrome Web Store access token
+        if: steps.release_exists.outputs.exists == 'false'
+        env:
+          CHROME_CLIENT_ID: ${{ secrets.CHROME_CLIENT_ID }}
+          CHROME_CLIENT_SECRET: ${{ secrets.CHROME_CLIENT_SECRET }}
+          CHROME_REFRESH_TOKEN: ${{ secrets.CHROME_REFRESH_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          TOKEN_RESPONSE="$(curl -sS https://oauth2.googleapis.com/token \
+            -d "client_id=${CHROME_CLIENT_ID}" \
+            -d "client_secret=${CHROME_CLIENT_SECRET}" \
+            -d "refresh_token=${CHROME_REFRESH_TOKEN}" \
+            -d "grant_type=refresh_token")"
+
+          ACCESS_TOKEN="$(node -e "const response = JSON.parse(process.argv[1]); if (!response.access_token) { console.error(JSON.stringify(response, null, 2)); process.exit(1); } console.log(response.access_token);" "$TOKEN_RESPONSE")"
+          echo "::add-mask::$ACCESS_TOKEN"
+          echo "CHROME_ACCESS_TOKEN=$ACCESS_TOKEN" >> "$GITHUB_ENV"
+
+      - name: Upload package to Chrome Web Store
+        if: steps.release_exists.outputs.exists == 'false'
+        env:
+          CHROME_EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
+          CHROME_PUBLISHER_ID: ${{ secrets.CHROME_PUBLISHER_ID }}
+        run: |
+          set -euo pipefail
+
+          UPLOAD_RESPONSE="$(curl -sS -X POST \
+            -H "Authorization: Bearer ${CHROME_ACCESS_TOKEN}" \
+            -H "Content-Type: application/zip" \
+            --data-binary "@${ARCHIVE}" \
+            "https://chromewebstore.googleapis.com/upload/v2/publishers/${CHROME_PUBLISHER_ID}/items/${CHROME_EXTENSION_ID}:upload")"
+
+          echo "$UPLOAD_RESPONSE" > chrome-upload-response.json
+          node -e "const response = require('./chrome-upload-response.json'); if (response.uploadState && response.uploadState !== 'SUCCESS') { console.error(JSON.stringify(response, null, 2)); process.exit(1); } if (response.error) { console.error(JSON.stringify(response, null, 2)); process.exit(1); }"
+
+      - name: Publish package to Chrome Web Store
+        if: steps.release_exists.outputs.exists == 'false'
+        env:
+          CHROME_EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
+          CHROME_PUBLISHER_ID: ${{ secrets.CHROME_PUBLISHER_ID }}
+        run: |
+          set -euo pipefail
+
+          PUBLISH_RESPONSE="$(curl -sS -X POST \
+            -H "Authorization: Bearer ${CHROME_ACCESS_TOKEN}" \
+            "https://chromewebstore.googleapis.com/v2/publishers/${CHROME_PUBLISHER_ID}/items/${CHROME_EXTENSION_ID}:publish")"
+
+          echo "$PUBLISH_RESPONSE" > chrome-publish-response.json
+          node -e "const response = require('./chrome-publish-response.json'); if (response.error) { console.error(JSON.stringify(response, null, 2)); process.exit(1); }"
+
+      - name: Publish GitHub release
+        if: steps.release_exists.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gh release create "$TAG" "$ARCHIVE" \
+            --title "$VERSION" \
+            --notes "Automated release for version $VERSION."

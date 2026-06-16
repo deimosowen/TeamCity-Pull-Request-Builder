@@ -1,0 +1,256 @@
+#root-build-tc-menu.tc-panel {
+    border-top: 0;
+    box-shadow: none;
+    padding-top: 8px;
+}
+
+.tc-panel-header {
+    align-items: center;
+    display: flex;
+    gap: 8px;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.tc-panel-title {
+    color: #333238;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 20px;
+}
+
+.tc-refresh-button {
+    align-items: center;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    color: #737278;
+    cursor: pointer;
+    display: inline-flex;
+    height: 26px;
+    justify-content: center;
+    padding: 0;
+    width: 26px;
+}
+
+.tc-refresh-button:hover {
+    background: #ececef;
+    border-color: transparent;
+    color: #333238;
+}
+
+.tc-refresh-button[disabled] {
+    cursor: wait;
+    opacity: .65;
+}
+
+.tc-refresh-icon {
+    fill: currentColor;
+    height: 15px;
+    width: 15px;
+}
+
+.tc-build-list {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.tc-group {
+    margin-top: 2px;
+}
+
+.tc-group-title {
+    align-items: center;
+    color: #737278;
+    display: flex;
+    font-size: 11px;
+    font-weight: 600;
+    gap: 7px;
+    line-height: 14px;
+    margin: 7px 0 3px;
+    text-transform: uppercase;
+}
+
+.tc-group-title::before,
+.tc-group-title::after {
+    background: #dcdcde;
+    content: "";
+    flex: 1;
+    height: 1px;
+}
+
+.tc-build-row {
+    align-items: center;
+    border-radius: 4px;
+    display: grid;
+    gap: 7px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    min-height: 42px;
+    margin: 0 -4px;
+    padding: 2px 4px;
+}
+
+.tc-build-row:hover {
+    background: #f7f7f8;
+}
+
+.tc-build-row:hover .tc-build-button {
+    color: #535158;
+}
+
+.tc-build-main {
+    min-width: 0;
+}
+
+.tc-build-name {
+    color: #333238;
+    display: block;
+    font-size: 13.5px;
+    line-height: 18px;
+    overflow: hidden;
+    text-decoration: none;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tc-build-name:hover {
+    color: #1f75cb;
+    text-decoration: underline;
+}
+
+.tc-build-meta {
+    align-items: center;
+    color: #737278;
+    display: flex;
+    flex-wrap: nowrap;
+    font-size: 12.5px;
+    gap: 5px;
+    line-height: 17px;
+    margin-top: 0;
+    min-width: 0;
+}
+
+.tc-build-meta span:first-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tc-status {
+    align-items: center;
+    display: inline-flex;
+    flex: 0 0 auto;
+    height: 17px;
+    justify-content: center;
+    width: 17px;
+}
+
+.tc-status-icon {
+    fill: currentColor;
+    height: 15px;
+    width: 15px;
+}
+
+.tc-status-success {
+    color: #217645;
+}
+
+.tc-status-failure {
+    color: #c91c00;
+}
+
+.tc-status-running {
+    color: #9e5400;
+}
+
+.tc-status-queued {
+    color: #535158;
+}
+
+.tc-status-muted {
+    color: #737278;
+}
+
+.tc-outdated {
+    align-items: center;
+    color: #9e5400;
+    display: inline-flex;
+    flex: 0 0 auto;
+    height: 17px;
+    justify-content: center;
+    width: 17px;
+}
+
+.tc-build-button {
+    align-items: center;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    color: #737278;
+    cursor: pointer;
+    display: inline-flex;
+    font-size: 13px;
+    height: 28px;
+    justify-content: center;
+    line-height: 18px;
+    padding: 0;
+    width: 30px;
+}
+
+.tc-run-icon {
+    fill: currentColor;
+    height: 14px;
+    width: 14px;
+}
+
+.tc-build-button:hover {
+    background: #ececef;
+    border-color: transparent;
+    color: #333238;
+}
+
+.tc-refresh-button:focus-visible,
+.tc-build-button:focus-visible {
+    border-color: #1f75cb;
+    box-shadow: 0 0 0 2px rgba(31, 117, 203, .18);
+    outline: none;
+}
+
+.tc-build-button[disabled] {
+    cursor: wait;
+    opacity: .7;
+}
+
+.tc-build-button-busy {
+    color: #535158;
+    font-weight: 600;
+}
+
+.tc-build-button-error {
+    color: #c91c00;
+    font-weight: 700;
+}
+
+.tc-panel-message {
+    border-radius: 4px;
+    font-size: 13px;
+    line-height: 18px;
+    padding: 8px;
+}
+
+.tc-panel-message-danger {
+    background: #fbe9eb;
+    color: #c91c00;
+}
+
+.tc-panel-message-muted {
+    background: #f7f7f8;
+    color: #737278;
+}
+
+.tc-loader {
+    color: #737278;
+    font-size: 13px;
+    padding: 8px 0;
+}

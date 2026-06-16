@@ -1,11 +1,12 @@
 {
-  "name": "git",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "name": "teamcity-pull-request-builder",
+  "version": "3.0.0",
+  "description": "Chrome extension for running TeamCity builds from pull requests.",
+  "main": "tc-utils.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "check": "node --check background.js && node --check contentScript.js && node --check options.js && node --check popup.js && node --check tc-utils.js",
+    "test": "npm run check && node tests/tc-utils.test.js"
   },
   "author": "",
-  "license": "ISC"
+  "license": "Apache-2.0"
 }

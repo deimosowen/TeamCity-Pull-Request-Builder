@@ -2,147 +2,82 @@
 <html>
 
 <head>
-    <title>Options</title>
+    <title>TeamCity Builder Options</title>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" />
-    <link rel="stylesheet" href="bulma.min.css" />
-    <style>
-        .content .highlight:not(:first-child) {
-            margin-top: 1em;
-        }
-
-        .content .highlight {
-            margin-left: 0;
-            margin-right: 0;
-            text-align: left;
-        }
-
-        .highlight pre {
-            background-color: transparent;
-            color: currentColor;
-            font-size: 1em;
-            line-height: 1.375;
-            margin: 0 !important;
-            padding: 1.25em 1.5em;
-            white-space: pre;
-            word-break: break-word;
-            display: flex;
-        }
-
-        .highlight {
-            background-color: #1f2330;
-            border-radius: 6px;
-            color: #d9e0e8;
-            font-size: .75em;
-            position: relative;
-        }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="options-style.css">
 </head>
 
-<body class="layout-documentation page-helpers">
-    <div class="bd-docs bd-is-contained">
-        <main class="bd-docs-main">
-            <div class="container">
-                <section class="hero">
-                    <div class="hero-body">
-                        <p class="title">TeamCity Pull Request Builder</p>
-                        <p class="subtitle">Options</p>
-                        <div class="columns">
-                            <div class="column is-three-fifths">
-                                <textarea class="textarea" placeholder="Json options" rows="16"
-                                    id="optionsJson"></textarea>
-                            </div>
-                        </div>
-                        <div id="notification"></div>
-                        <div class="columns">
-                            <div class="column is-three-fifths">
-                                <button class="button is-success" id="saveJson">Save</button>
-                                <button class="button is-info" id="prettifyJson">Prettify Json</button>
-                                <button class="button" id="setDefault">Set Default</button>
-                                <button class="button js-modal-trigger" data-target="modal-help">
-                                    Help
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-            </div>
-        </main>
-    </div>
-    <div id="modal-help" class="modal">
-        <div class="modal-background"></div>
-        <div class="modal-content">
-            <div class="content box">
-                <h1>Configuration Parameters:</h1>
-                <ul>
-                    <li><code>BaseUrl</code>: (Required) The URL of your TeamCity server. Example:
-                        <code>https://yourteamcityserver.com/</code>.
-                    </li>
-                    <li><code>Username</code>: (Required) The username for your TeamCity server.</li>
-                    <li><code>Password</code>: (Required) The password for your TeamCity server.</li>
-                    <li><code>Repository</code>: (Required) An object where each property represents a repository, and
-                        the value is an array of build configuration objects. Replace <code>"MyRepo"</code> with the
-                        name of your
-                        repository.</li>
-                    <li><code>BuildType</code>: (Required) The identifier of the build type in TeamCity.</li>
-                    <li><code>Name</code>: (Required) The name that will be displayed in the plugin interface.</li>
-                    <li><code>Group</code>: (Optional) The group to which this build configuration belongs. If
-                        specified, the build configurations will be grouped under this name in the plugin interface.
-                    </li>
-                    <li><code>Order</code>: (Optional) The sequential number to determine the display order of the build
-                        configurations within a group.</li>
-                    <li><code>BranchPrefix</code>: (Optional) A prefix for the branch name used in build configurations.
-                        Default value: "requests".</li>
-                    <li><code>Depends</code>: (Optional) An optional identifier of another build type that this
-                        configuration depends on. If specified, this build configuration is considered outdated or not
-                        actual if the build it depends on has a different version.</li>
-                    <li>
-                        <code>HeadingBorder</code>: (Optional) Boolean value.
-                        If set to <code>true</code>, all headings (<code>h1</code>–<code>h6</code>) in the Merge Request
-                        description
-                        will be styled with a bottom border, padding, and increased font size for better readability.
-                        Default value: <code>false</code>.
-                    </li>
-
-                </ul>
-                <div class="content">
-                    <figure class="highlight">
-                        <pre>
-                            <code class="language-markdown" data-lang="markdown">BaseUrl (Required)
-Username (Required)
-Password (Required)
-Repository (Required)
-│
-└── "MyRepo" (Your repository name)
-    ├── [0]
-    │   ├── BuildType (Required)
-    │   ├── Name (Required)
-    │   ├── Group (Optional)
-    │   └── Order (Optional)
-    │   └── BranchPrefix (Optional)
-    │   └── Depends (Optional)
-    │
-    ├── [1]
-    │   ├── BuildType (Required)
-    │   ├── Name (Required)
-    │   ├── Group (Optional)
-    │   └── Order (Optional)
-    │   └── BranchPrefix (Optional)
-    │   └── Depends (Optional)
-    │
-    ├── [2]...           
-    │
-    └── HeadingBorder (Optional)
-        └── true / false
-                            </code>
-                        </pre>
-                    </figure>
+<body>
+    <main class="settings-shell">
+        <header class="settings-header">
+            <div class="brand">
+                <img src="assets/icons/icon24.png" alt="" class="brand-icon">
+                <div>
+                    <h1>TeamCity Pull Request Builder</h1>
+                    <p>Options</p>
                 </div>
             </div>
+            <div class="header-actions">
+                <button class="button button-secondary" id="setDefault" type="button">Load example</button>
+                <button class="button button-primary" id="saveConfig" type="button">Save</button>
+            </div>
+        </header>
+
+        <div class="status-row">
+            <div id="statusMessage" class="status-message" role="status"></div>
         </div>
-        <button class="modal-close is-large" aria-label="close"></button>
-    </div>
+
+        <section class="settings-surface">
+            <div class="tabs" role="tablist" aria-label="Options editor mode">
+                <button class="tab-button is-active" id="tabUi" type="button" role="tab" aria-selected="true"
+                    aria-controls="uiPanel">UI settings</button>
+                <button class="tab-button" id="tabJson" type="button" role="tab" aria-selected="false"
+                    aria-controls="jsonPanel">Raw JSON</button>
+            </div>
+
+            <section id="uiPanel" class="tab-panel is-active" role="tabpanel" aria-labelledby="tabUi">
+                <form id="configForm">
+                    <section class="form-section">
+                        <div class="section-heading">
+                            <h2>Connection</h2>
+                        </div>
+                        <div class="connection-grid">
+                            <label class="field">
+                                <span>TeamCity URL</span>
+                                <input id="optBaseUrl" type="url" placeholder="https://yourteamcityserver.com/">
+                            </label>
+                            <label class="field">
+                                <span>Username</span>
+                                <input id="optUsername" type="text" autocomplete="username">
+                            </label>
+                            <label class="field">
+                                <span>Password or token</span>
+                                <input id="optPassword" type="password" autocomplete="current-password">
+                            </label>
+                            <label class="toggle-field">
+                                <input id="optHeadingBorder" type="checkbox">
+                                <span>Heading borders in merge request description</span>
+                            </label>
+                        </div>
+                    </section>
+
+                    <section class="form-section">
+                        <div class="section-heading section-heading-row">
+                            <h2>Repositories</h2>
+                            <button class="button button-secondary" id="addRepository" type="button">Add repository</button>
+                        </div>
+                        <div id="repositoryEditor" class="repository-editor"></div>
+                    </section>
+                </form>
+            </section>
+
+            <section id="jsonPanel" class="tab-panel" role="tabpanel" aria-labelledby="tabJson" hidden>
+                <textarea id="optionsJson" spellcheck="false" aria-label="Raw JSON settings"></textarea>
+            </section>
+        </section>
+    </main>
+
     <script src="options.js"></script>
 </body>
 
