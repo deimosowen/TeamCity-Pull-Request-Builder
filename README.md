@@ -3,14 +3,6 @@
 ## Description
 The TeamCity-Pull-Request-Builder is a Google Chrome plugin that allows you to automatically trigger builds of your project that are associated with a specific pull request.
 
-## What's new in 3.0.0
-- Better TeamCity status handling, including failed starts and `Unable to collect changes` errors.
-- Refresh build statuses without reloading the merge request page.
-- Build duration display for running and finished builds.
-- Updated GitLab sidebar UI with compact status badges.
-- User-friendly Options page with a visual editor and JSON import/export.
-- Basic test coverage for status, date, duration, and GitLab URL parsing.
-
 ## Installation
 1. Navigate to the TeamCity-Pull-Request-Builder plugin page on the Chrome Web Store using this [link](https://chrome.google.com/webstore/detail/teamcity-pull-request-bui/jeddilgijkpgnncoolllmmjcaplpeijj).
 2. Click the "Add to Chrome" button and confirm the extension installation.
@@ -68,31 +60,6 @@ Each build configuration object contains the following properties:
 
 ## Usage
 After configuring the plugin, open a GitLab merge request. The TeamCity block appears in the right sidebar and shows configured builds, status, duration, and a Run button. Use the refresh button in the block to update statuses without reloading the page.
-
-## Development
-Run the checks and unit tests:
-
-```bash
-npm test
-```
-
-## Release cycle
-Releases are published by GitHub Actions after changes are pushed to `main`.
-
-1. Update the version in `manifest.json` and `package.json`.
-2. Commit and merge the changes into `main`.
-3. The release workflow runs tests, reads the version from `manifest.json`, and checks whether a GitHub release with that tag already exists.
-4. If the release does not exist, the workflow builds the extension zip, uploads it to the Chrome Web Store, submits it for publishing, and creates a GitHub release.
-
-Release tags use the plain version value, for example `3.0.0`.
-
-The workflow expects these GitHub Actions secrets:
-
-- `CHROME_EXTENSION_ID`
-- `CHROME_PUBLISHER_ID`
-- `CHROME_CLIENT_ID`
-- `CHROME_CLIENT_SECRET`
-- `CHROME_REFRESH_TOKEN`
 
 ## Support
 If you encounter any issues using the plugin or have suggestions for its improvement, please create an issue in this repository.
