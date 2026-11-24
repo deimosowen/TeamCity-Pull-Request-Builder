@@ -1,12 +1,15 @@
 {
   "name": "teamcity-pull-request-builder",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Chrome extension for running TeamCity builds from pull requests.",
   "main": "tc-utils.js",
   "scripts": {
     "check": "node --check background.js && node --check contentScript.js && node --check options.js && node --check popup.js && node --check tc-utils.js",
-    "test": "npm run check && node tests/tc-utils.test.js"
+    "test": "npm run check && node tests/tc-utils.test.js && node --test tests/contentScript.test.js"
   },
   "author": "",
-  "license": "Apache-2.0"
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "jsdom": "^26.1.0"
+  }
 }
