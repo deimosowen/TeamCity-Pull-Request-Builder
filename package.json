@@ -1,6 +1,6 @@
 {
   "name": "teamcity-pull-request-builder",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Chrome extension for running TeamCity builds from pull requests.",
   "main": "tc-utils.js",
   "scripts": {
