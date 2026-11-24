@@ -35,18 +35,29 @@ const cs = {
     init: async () => {
         await options.init();
 
-        window.addEventListener("load", async () => {
-            await cs.render();
-        });
-
         chrome.runtime.onMessage.addListener(({ type }) => {
             if (type === "OPEN_PULL") {
-                setTimeout(async () => await cs.render(), 1000);
+                cs.scheduleRender();
             }
         });
+        window.addEventListener("popstate", cs.scheduleRender);
+        // GitLab can mount or replace the sidebar after the page has loaded.
+        cs.observer = new MutationObserver(cs.scheduleRender);
+        cs.observer.observe(document.documentElement, { childList: true, subtree: true });
+        await cs.render();
     },
-    render: async () => {
-        addBuildInTeamCityMenu();
+    renderTimer: null,
+    scheduleRender: () => {
+        if (cs.renderTimer !== null) {
+            return;
+        }
+        cs.renderTimer = setTimeout(() => {
+            cs.renderTimer = null;
+            cs.render();
+        }, 100);
+    },
+    render: async (forceRefresh = false) => {
+        addBuildInTeamCityMenu(forceRefresh);
         addHeadingBorderInMergeRequestDescription();
     },
     getRepoBuildSetting: () => {
@@ -57,14 +68,8 @@ const cs = {
 };
 
 function getPullNumber() {
-    const bodyElement = document.querySelector("body");
-    const pageTypeId = bodyElement?.getAttribute("data-page-type-id");
-    const fromPageType = Number.parseInt(pageTypeId, 10);
-    if (Number.isFinite(fromPageType)) {
-        return fromPageType;
-    }
-
-    const match = window.location.href.match(/\/merge_requests\/(\d+)/);
+    // Body metadata can still belong to the previous MR during navigation.
+    const match = window.location.pathname.match(/\/-\/merge_requests\/(\d+)(?:\/|$)/);
     return match ? Number.parseInt(match[1], 10) : null;
 }
 
@@ -372,43 +377,44 @@ function createLabelsElement(builds) {
     return labelsElement;
 }
 
-function addBuildInTeamCityMenu() {
+function addBuildInTeamCityMenu(forceRefresh = false) {
     const buildSetting = cs.getRepoBuildSetting();
-    if (!buildSetting) {
+    const pull = getPullNumber();
+    const existing = document.getElementById("root-build-tc-menu");
+    if (!Array.isArray(buildSetting) || !pull) {
+        existing?.remove();
         return;
     }
 
-    if (window.__tcPrbMenuTimer) {
-        clearInterval(window.__tcPrbMenuTimer);
+    const pageKey = window.location.pathname.split("/-/merge_requests/")[0] + "/" + pull;
+    if (existing && (existing.dataset.pageKey !== pageKey || forceRefresh)) {
+        existing.remove();
+    }
+    const sidebar = document.querySelector('aside[data-testid="issuable-sidebar"], aside.right-sidebar');
+    if (!sidebar) {
+        return;
+    }
+    // Anchor to the section, not its permission-dependent Edit button.
+    const milestone = sidebar.querySelector('[data-testid="sidebar-milestones"], .block.milestone');
+    const container = milestone?.parentNode || sidebar.querySelector("form.issuable-context-form");
+    if (!container) {
+        return;
+    }
+    const mounted = document.getElementById("root-build-tc-menu");
+    if (mounted) {
+        if (mounted.parentNode !== container) {
+            container.insertBefore(mounted, milestone || null);
+        }
+        return;
     }
 
-    let attempts = 0;
-    window.__tcPrbMenuTimer = setInterval(() => {
-        attempts += 1;
-        const projectsMenu = document.getElementById("milestone-edit");
-        if (!projectsMenu && attempts < 30) {
-            return;
-        }
-
-        clearInterval(window.__tcPrbMenuTimer);
-        window.__tcPrbMenuTimer = null;
-        if (!projectsMenu) {
-            return;
-        }
-
-        const parent = projectsMenu.closest(".milestone");
-        if (!parent?.parentNode) {
-            return;
-        }
-
-        const sidebarItem = createSidebarItem();
-        const labelsElement = createLabelsElement(buildSetting);
-
-        addScrollToForm(parent);
-        sidebarItem.appendChild(createHeaderElement(buildSetting, labelsElement));
-        sidebarItem.appendChild(labelsElement);
-        parent.parentNode.insertBefore(sidebarItem, parent);
-    }, 500);
+    const sidebarItem = createSidebarItem();
+    sidebarItem.dataset.pageKey = pageKey;
+    const labelsElement = createLabelsElement(buildSetting);
+    addScrollToForm(container);
+    sidebarItem.appendChild(createHeaderElement(buildSetting, labelsElement));
+    sidebarItem.appendChild(labelsElement);
+    container.insertBefore(sidebarItem, milestone || null);
 }
 
 function addHeadingBorderInMergeRequestDescription() {
@@ -447,7 +453,7 @@ async function handleBuildButtonClick(event, { BuildType, pull }) {
         });
         const queuedState = result?.response?.data?.state || result?.response?.data?.build?.state;
         setRunButtonState(button, queuedState === "queued" ? "queued" : "starting");
-        setTimeout(() => cs.render(), 1000);
+        setTimeout(() => cs.render(true), 1000);
     } catch (error) {
         console.error("TeamCity build start failed:", error);
         button.disabled = false;
